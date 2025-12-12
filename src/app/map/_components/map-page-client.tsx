@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Scissors, Search, MapPin, Navigation, X, Calendar, MessageSquare } from "lucide-react";
 import { useState, useMemo } from "react";
 import { UserButton } from "@clerk/nextjs";
+import AppointmentModal from "@/components/ui/appointment-modal";
 
 const FullScreenMap = dynamic(() => import("@/components/ui/fullscreen-map"), { 
   ssr: false,
@@ -21,6 +22,12 @@ interface Barber {
   isActive: boolean;
   averageRating: number | null;
   logoUrl?: string | null;
+  services?: Array<{
+    id: string;
+    name: string;
+    duration: number;
+    price: number | string;
+  }>;
   workingHours?: {
     dayOfWeek: number;
     isClosed: boolean;
@@ -34,6 +41,7 @@ interface Barber {
 export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[], mapCenter: [number, number] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
 
   // Arama filtresi
   const filteredBarbers = useMemo(() => {
@@ -105,13 +113,17 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
                 </div>
 
                 <div className="space-y-3">
-                  <Link
-                    href={`/${selectedBarber.slug}`}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsAppointmentModalOpen(true);
+                    }}
                     className="block w-full bg-slate-900 text-white text-center py-3 rounded-xl font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-2"
                   >
                     <Calendar size={18} />
                     Randevu Al
-                  </Link>
+                  </button>
                   
                   <button className="w-full border border-slate-300 text-slate-900 text-center py-3 rounded-xl font-medium hover:bg-slate-50 transition flex items-center justify-center gap-2">
                     <Navigation size={18} />
@@ -222,11 +234,15 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
               )}
               <div className="space-y-3">
                 <button
-                  onClick={() => window.open(`/${selectedBarber.slug}`, "_blank")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsAppointmentModalOpen(true);
+                  }}
                   className="w-full bg-slate-900 text-white text-center py-3 rounded-xl font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-2"
                 >
                   <Calendar size={18} />
-                  Randevu Al (Panel)
+                  Randevu Al
                 </button>
                 <button className="w-full border border-slate-300 text-slate-900 text-center py-3 rounded-xl font-medium hover:bg-slate-50 transition flex items-center justify-center gap-2">
                   <Navigation size={18} />
@@ -281,8 +297,37 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
           }
           selectedBarberId={selectedBarber?.id}
           onMarkerClick={setSelectedBarber}
+          onBookAppointment={(barber) => {
+            // Popup'tan gelen berberi bul ve modal'ı aç
+            const foundBarber = barbers.find(b => b.id === barber.id);
+            if (foundBarber) {
+              setSelectedBarber(foundBarber);
+              setIsAppointmentModalOpen(true);
+            }
+          }}
         />
       </div>
+
+      {/* Appointment Modal */}
+      {selectedBarber && (
+        <AppointmentModal
+          barberId={selectedBarber.id}
+          barberName={selectedBarber.shopName}
+          services={selectedBarber.services && selectedBarber.services.length > 0 
+            ? selectedBarber.services.map(s => ({
+                id: s.id,
+                name: s.name,
+                duration: s.duration,
+                price: typeof s.price === 'number' ? s.price.toString() : String(s.price),
+              }))
+            : []
+          }
+          isOpen={isAppointmentModalOpen}
+          onClose={() => {
+            setIsAppointmentModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

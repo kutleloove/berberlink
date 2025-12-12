@@ -23,12 +23,14 @@ export default function FullScreenMap({
   center, 
   selectedBarberId,
   onMarkerClick,
+  onBookAppointment, // Yeni prop: randevu alma callback'i
   darkMode = false,
 }: { 
   barbers: Barber[], 
   center: [number, number],
   selectedBarberId?: string,
   onMarkerClick?: (barber: Barber) => void,
+  onBookAppointment?: (barber: Barber) => void, // Yeni prop
   darkMode?: boolean,
 }) {
   const [isMounted, setIsMounted] = useState(false);
@@ -64,6 +66,15 @@ export default function FullScreenMap({
       onMarkerClick(barber);
     }
   }, [onMarkerClick]);
+
+  const handleBookAppointment = useCallback((barber: Barber) => {
+    // Popup'ı kapat
+    setSelectedBarber(null);
+    // Modal'ı aç
+    if (onBookAppointment) {
+      onBookAppointment(barber);
+    }
+  }, [onBookAppointment]);
 
   const handleMoveEnd = useCallback(() => {
     setCurrentZoom(viewState.zoom);
@@ -314,7 +325,10 @@ export default function FullScreenMap({
             onClick={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
           >
-            <BarberPopup barber={selectedBarber} />
+            <BarberPopup 
+              barber={selectedBarber} 
+              onBookAppointment={handleBookAppointment}
+            />
           </div>
         </Popup>
       )}

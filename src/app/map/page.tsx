@@ -22,6 +22,14 @@ export default async function MapPage() {
           image: true,
         },
       },
+      services: {
+        select: {
+          id: true,
+          name: true,
+          duration: true,
+          price: true,
+        },
+      },
       workingHours: {
         select: {
           dayOfWeek: true,

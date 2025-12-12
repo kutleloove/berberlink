@@ -14,9 +14,10 @@ interface BarberPopupProps {
     logoUrl?: string | null;
     averageRating: number | null;
   };
+  onBookAppointment?: (barber: BarberPopupProps['barber']) => void;
 }
 
-export default function BarberPopup({ barber }: BarberPopupProps) {
+export default function BarberPopup({ barber, onBookAppointment }: BarberPopupProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Start as false to show UI immediately
   const [mounted, setMounted] = useState(false);
@@ -129,13 +130,26 @@ export default function BarberPopup({ barber }: BarberPopupProps) {
         )}
 
         {/* Book button */}
-        <Link 
-          href={`/${barber.slug}`}
-          className="block w-full bg-slate-900 text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          Randevu Al
-        </Link>
+        {onBookAppointment ? (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onBookAppointment(barber);
+            }}
+            className="block w-full bg-slate-900 text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
+          >
+            Randevu Al
+          </button>
+        ) : (
+          <Link 
+            href={`/${barber.slug}`}
+            className="block w-full bg-slate-900 text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Randevu Al
+          </Link>
+        )}
       </div>
     </div>
   );
