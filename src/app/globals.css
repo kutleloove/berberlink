@@ -258,3 +258,43 @@ html {
 .maplibregl-map {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
 }
+
+/* MapLibre Attribution Control - Küçült ve sağ alt köşeye taşı */
+.maplibregl-ctrl-attrib {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px) !important;
+  padding: 3px 8px !important;
+  font-size: 9px !important;
+  line-height: 1.3 !important;
+  max-width: 180px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  margin: 0 0 10px 10px !important;
+  opacity: 0.85 !important;
+}
+
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  margin: 0 0 10px 10px !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: #64748b !important;
+  text-decoration: none !important;
+  font-size: 9px !important;
+}
+
+.maplibregl-ctrl-attrib a:hover {
+  color: #475569 !important;
+  text-decoration: underline !important;
+}
+
+/* MapLibre attribution button (i harfi) */
+.maplibregl-ctrl-attrib-button {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px) !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  margin: 0 10px 10px 0 !important;
+}

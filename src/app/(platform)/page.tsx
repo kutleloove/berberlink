@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Scissors, Calendar, Store, ShieldCheck, MapPin, Search } from "lucide-react";
+import { ArrowRight, Scissors, Calendar, Store, ShieldCheck, MapPin, Search, Maximize2 } from "lucide-react";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import MiniMap from "@/components/ui/mini-map";
+import QuickBooking from "@/components/ui/quick-booking";
 
 export default async function LandingPage() {
   const user = await currentUser();
@@ -21,9 +22,38 @@ export default async function LandingPage() {
         include: { barber: true, services: true },
         orderBy: { startTime: "asc" },
         take: 3
-      }
+      },
+      favorites: {
+        include: {
+          barber: {
+            include: {
+              user: {
+                select: {
+                  image: true,
+                },
+              },
+            },
+          },
+        },
+      },
     }
   });
+
+  // Son randevu alınan berber ID'sini bul
+  const lastAppointment = await db.appointment.findFirst({
+    where: {
+      customerId: dbUser?.id,
+    },
+    include: {
+      barber: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  const hasUpcomingAppointments = (dbUser?.appointmentsAsCustomer?.length || 0) > 0;
+  const hasFavorites = (dbUser?.favorites?.length || 0) > 0;
 
   // Yakındaki berberleri çek (Şimdilik rastgele 5 aktif berber)
   // Gerçek lokasyon bazlı arama için PostGIS veya Haversine formülü gerekir, şimdilik basit tutalım.
@@ -116,9 +146,25 @@ export default async function LandingPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white p-6 rounded-xl border border-slate-100 text-center text-slate-500">
-                Planlanmış bir randevunuz yok.
-              </div>
+              <>
+                {!hasUpcomingAppointments && hasFavorites && (
+                  <QuickBooking 
+                    hasUpcomingAppointments={hasUpcomingAppointments}
+                    lastAppointmentBarberId={lastAppointment?.barberId || null}
+                    favoriteBarbers={dbUser.favorites.map(f => ({
+                      id: f.barber.id,
+                      shopName: f.barber.shopName,
+                      slug: f.barber.slug,
+                      logoUrl: f.barber.user?.image || null,
+                    }))}
+                  />
+                )}
+                {(!hasFavorites || hasUpcomingAppointments) && (
+                  <div className="bg-white p-6 rounded-xl border border-slate-100 text-center text-slate-500">
+                    Planlanmış bir randevunuz yok.
+                  </div>
+                )}
+              </>
             )}
 
             {dbUser?.role !== "BARBER" && (
@@ -146,8 +192,12 @@ export default async function LandingPage() {
                 <div className="h-[400px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative group">
                   <MiniMap barbers={nearbyBarbers} />
                   <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition pointer-events-none" />
-                  <Link href="/map" className="absolute bottom-4 right-4 bg-white px-4 py-2 rounded-lg shadow-lg text-sm font-bold text-slate-900 hover:bg-slate-50 transition pointer-events-auto">
-                    Büyük Haritada Aç
+                  <Link 
+                    href="/map" 
+                    className="absolute top-4 right-4 bg-white p-2.5 rounded-lg shadow-lg hover:bg-slate-50 transition pointer-events-auto flex items-center justify-center"
+                    title="Büyük haritada aç"
+                  >
+                    <Maximize2 size={20} className="text-slate-900" />
                   </Link>
                 </div>
 
