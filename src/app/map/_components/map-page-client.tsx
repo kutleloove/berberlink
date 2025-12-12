@@ -22,6 +22,7 @@ interface Barber {
   isActive: boolean;
   averageRating: number | null;
   logoUrl?: string | null;
+  isFavorite?: boolean; // Favorite status eklendi
   services?: Array<{
     id: string;
     name: string;

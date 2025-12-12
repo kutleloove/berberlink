@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Star, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
-import { toggleFavorite, getFavoriteStatus } from "@/actions/favorite";
+import { toggleFavorite } from "@/actions/favorite";
 
 interface BarberPopupProps {
   barber: {
@@ -13,40 +13,20 @@ interface BarberPopupProps {
     address: string | null;
     logoUrl?: string | null;
     averageRating: number | null;
+    isFavorite?: boolean; // Favorite status prop olarak eklendi
   };
   onBookAppointment?: (barber: BarberPopupProps['barber']) => void;
 }
 
 export default function BarberPopup({ barber, onBookAppointment }: BarberPopupProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Start as false to show UI immediately
-  const [mounted, setMounted] = useState(false);
+  // Initial favorite status'u prop'tan al, sonra toggleFavorite ile güncelle
+  const [isFavorite, setIsFavorite] = useState(barber.isFavorite || false);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Barber prop'u değiştiğinde favorite status'u güncelle
   useEffect(() => {
-    setMounted(true);
-    // Check favorite status on mount (non-blocking)
-    getFavoriteStatus(barber.id)
-      .then((status) => {
-        setIsFavorite(status);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error loading favorite status:", error);
-        setIsLoading(false);
-      });
-  }, [barber.id]);
-
-  // Show loading state only if not mounted yet
-  if (!mounted) {
-    return (
-      <div className="w-full p-4" style={{ width: '280px', minWidth: '280px', maxWidth: '280px' }}>
-        <div className="animate-pulse">
-          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-        </div>
-      </div>
-    );
-  }
+    setIsFavorite(barber.isFavorite || false);
+  }, [barber.id, barber.isFavorite]);
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();

@@ -2,8 +2,9 @@
 
 import { Map, Marker, Popup } from "@vis.gl/react-maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
+import type { MapRef } from "@vis.gl/react-maplibre";
 
 const BarberPopup = dynamic(() => import("./barber-popup"), { ssr: false });
 
@@ -16,6 +17,7 @@ interface Barber {
   address: string | null;
   logoUrl?: string | null;
   averageRating: number | null;
+  isFavorite?: boolean; // Favorite status eklendi
 }
 
 export default function FullScreenMap({ 
@@ -35,6 +37,7 @@ export default function FullScreenMap({
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(12);
+  const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState({
     longitude: center[1],
     latitude: center[0],
@@ -46,15 +49,33 @@ export default function FullScreenMap({
     setIsMounted(true);
   }, []);
 
-  // Center değiştiğinde viewState'i güncelle
+  // Popup açıldığında haritayı kaydır - popup görünür olsun
   useEffect(() => {
-    setViewState(prev => ({
-      ...prev,
-      longitude: center[1],
-      latitude: center[0],
-    }));
-  }, [center]);
-
+    if (selectedBarber && selectedBarber.latitude && selectedBarber.longitude) {
+      // Popup'ın yüksekliğini hesaba katarak offset ekle
+      // Popup yaklaşık 220px yüksekliğinde, ekranın alt kısmına yakın olmaması için yukarı kaydır
+      const popupHeight = 220; // Popup'ın tahmini yüksekliği
+      const offsetY = popupHeight / 2 + 20; // Popup'ın üst kısmının görünmesi için offset
+      
+      // Map instance'ına erişip flyTo kullan - viewState'i güncellemeden direkt flyTo
+      if (mapRef.current) {
+        const timeoutId = setTimeout(() => {
+          const map = mapRef.current?.getMap();
+          if (map) {
+            map.flyTo({
+              center: [selectedBarber.longitude!, selectedBarber.latitude!],
+              offset: [0, offsetY], // Aşağı kaydır (popup yukarıda görünsün)
+              duration: 500,
+              essential: true,
+            });
+          }
+        }, 100); // Popup render edilene kadar bekle
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [selectedBarber]);
+  
   // Zoom seviyesine göre marker tipi belirleme
   // Zoom >= 15: Berber ismi (detaylı marker) - çok yakın, sadece birkaç sokak görünürken
   // Zoom < 15: Yer imi (pin şekli) - şehrin tamamı veya mahalle görünürken
@@ -123,6 +144,7 @@ export default function FullScreenMap({
 
   return (
     <Map
+      ref={mapRef}
       {...viewState}
       onMove={(evt) => {
         setViewState(evt.viewState);
