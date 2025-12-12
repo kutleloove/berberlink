@@ -63,7 +63,7 @@ export default function BarberPopup({ barber }: BarberPopupProps) {
   const hasRating = barber.averageRating !== null && barber.averageRating > 0;
 
   return (
-    <div className="w-full p-0" style={{ width: '280px', minWidth: '280px', maxWidth: '280px' }}>
+    <div className="w-full" style={{ width: '280px', minWidth: '280px', maxWidth: '280px' }}>
       {/* Header with logo and favorite */}
       <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-t-lg">
         <div className="flex items-start gap-3">

@@ -23,9 +23,11 @@ interface Barber {
   logoUrl?: string | null;
   workingHours?: {
     dayOfWeek: number;
-    startTime: string;
-    endTime: string;
     isClosed: boolean;
+    shifts: {
+      startTime: string;
+      endTime: string;
+    }[];
   }[];
 }
 
@@ -169,8 +171,11 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
                               <p className="text-xs text-slate-500">
                                 Çalışma:{" "}
                                 {barber.workingHours
-                                  .filter((wh) => !wh.isClosed)
-                                  .map((wh) => `${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]} ${wh.startTime}-${wh.endTime}`)
+                                  .filter((wh) => !wh.isClosed && wh.shifts && wh.shifts.length > 0)
+                                  .map((wh) => {
+                                    const shiftStr = wh.shifts.map(s => `${s.startTime}-${s.endTime}`).join(", ");
+                                    return `${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]} ${shiftStr}`;
+                                  })
                                   .slice(0, 1)
                                   .join(", ") || "Kapalı"}
                               </p>
@@ -241,7 +246,14 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
                       {selectedBarber.workingHours.map((wh) => (
                         <li key={wh.dayOfWeek} className="flex justify-between">
                           <span>{["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]}</span>
-                          <span>{wh.isClosed ? "Kapalı" : `${wh.startTime} - ${wh.endTime}`}</span>
+                          <span>
+                            {wh.isClosed 
+                              ? "Kapalı" 
+                              : wh.shifts && wh.shifts.length > 0
+                                ? wh.shifts.map((shift, idx) => `${shift.startTime} - ${shift.endTime}`).join(", ")
+                                : "Bilgi yok"
+                            }
+                          </span>
                         </li>
                       ))}
                     </ul>

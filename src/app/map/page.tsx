@@ -25,9 +25,13 @@ export default async function MapPage() {
       workingHours: {
         select: {
           dayOfWeek: true,
-          startTime: true,
-          endTime: true,
           isClosed: true,
+          shifts: {
+            select: {
+              startTime: true,
+              endTime: true,
+            },
+          },
         },
         orderBy: { dayOfWeek: "asc" }
       }
