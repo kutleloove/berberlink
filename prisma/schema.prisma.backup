@@ -1,0 +1,335 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  BARBER
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum SubscriptionType {
+  MONTH_3
+  MONTH_6
+  YEAR_1
+  YEAR_4
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  image     String?
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile                Profile?
+  appointmentsAsCustomer Appointment[] @relation("CustomerAppointments")
+  sentMessages           Message[]     @relation("SentMessages")
+  receivedMessages       Message[]     @relation("ReceivedMessages")
+  blacklistedBy          Blacklist[]
+}
+
+model Profile {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  customDomain String? @unique
+  shopName     String
+  bio          String?
+
+  address   String?
+  latitude  Float?
+  longitude Float?
+
+  themeConfig Json?
+
+  subscriptionEndsAt          DateTime?
+  isActive                    Boolean   @default(false)
+  appointmentLimitPerCustomer Int       @default(1)
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  services      Service[]
+  appointments  Appointment[]
+  blacklist     Blacklist[]
+  workingHours  WorkingHour[]
+  breaks        Break[]
+  holidays      Holiday[]
+  subscriptions SubscriptionHistory[]
+  staff         Staff[] // Personeller
+  staffRoles    StaffRole[] // Personel rolleri
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkingHour {
+  id        String  @id @default(cuid())
+  dayOfWeek Int
+  isClosed  Boolean @default(false)
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+
+  shifts Shift[] // Birden fazla vardiya için
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, dayOfWeek])
+}
+
+model Shift {
+  id        String @id @default(cuid())
+  startTime String // "08:00"
+  endTime   String // "12:00"
+
+  workingHourId String
+  workingHour   WorkingHour @relation(fields: [workingHourId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Break {
+  id        String @id @default(cuid())
+  startTime String
+  endTime   String
+  dayOfWeek Int
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+}
+
+model Holiday {
+  id        String   @id @default(cuid())
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+}
+
+model SubscriptionHistory {
+  id            String           @id @default(cuid())
+  type          SubscriptionType
+  startDate     DateTime
+  endDate       DateTime
+  amount        Decimal
+  paymentMethod PaymentMethod
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id       String  @id @default(cuid())
+  name     String
+  duration Int
+  price    Decimal
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+
+  appointments     Appointment[]
+  staffAssignments StaffServiceAssignment[]
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  startTime DateTime
+  endTime   DateTime
+  status    AppointmentStatus @default(CONFIRMED)
+  notes     String?
+
+  customerId String
+  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id])
+
+  barberId String
+  barber   Profile @relation(fields: [barberId], references: [id])
+
+  staffId String? // Personel ataması (opsiyonel)
+  staff   Staff?  @relation(fields: [staffId], references: [id])
+
+  services Service[]
+
+  // Randevu değişiklik onayı için
+  pendingChangeId String?            @unique
+  pendingChange   AppointmentChange? @relation("PendingChange")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AppointmentChange {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation("PendingChange", fields: [appointmentId], references: [id])
+
+  newStartTime DateTime
+  newEndTime   DateTime
+  newStaffId   String?
+  reason       String?
+
+  isApproved Boolean @default(false)
+  isRejected Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id      String  @id @default(cuid())
+  content String
+  isRead  Boolean @default(false)
+
+  senderId String
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
+
+  receiverId String
+  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Blacklist {
+  id     String  @id @default(cuid())
+  reason String?
+
+  barberId String
+  barber   Profile @relation(fields: [barberId], references: [id])
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([barberId, customerId])
+}
+
+model StaffRole {
+  id          String  @id @default(cuid())
+  name        String // "Çırak", "Kalfa", "Usta"
+  description String?
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+
+  staff Staff[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Staff {
+  id    String  @id @default(cuid())
+  name  String
+  email String?
+  phone String?
+  image String?
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+
+  roleId String?
+  role   StaffRole? @relation(fields: [roleId], references: [id])
+
+  // Yetkiler
+  canCreateAppointments Boolean @default(false)
+  canEditAppointments   Boolean @default(false)
+  canManageMessages     Boolean @default(false)
+  canUpdateProfile      Boolean @default(false)
+  canManageStaff        Boolean @default(false)
+
+  // Çalışma saatleri (personel bazlı, opsiyonel)
+  workingHours StaffWorkingHour[]
+  breaks       StaffBreak[]
+
+  // Hizmetlere atanma
+  serviceAssignments StaffServiceAssignment[]
+
+  // Randevular
+  appointments Appointment[]
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StaffWorkingHour {
+  id        String  @id @default(cuid())
+  dayOfWeek Int
+  isClosed  Boolean @default(false)
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  shifts StaffShift[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([staffId, dayOfWeek])
+}
+
+model StaffShift {
+  id        String @id @default(cuid())
+  startTime String
+  endTime   String
+
+  staffWorkingHourId String
+  staffWorkingHour   StaffWorkingHour @relation(fields: [staffWorkingHourId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model StaffBreak {
+  id        String @id @default(cuid())
+  startTime String
+  endTime   String
+  dayOfWeek Int
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+model StaffServiceAssignment {
+  id String @id @default(cuid())
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([staffId, serviceId])
+}

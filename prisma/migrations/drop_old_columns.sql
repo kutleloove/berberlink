@@ -1,0 +1,3 @@
+ALTER TABLE "WorkingHour" DROP COLUMN IF EXISTS "startTime";
+ALTER TABLE "WorkingHour" DROP COLUMN IF EXISTS "endTime";
+
