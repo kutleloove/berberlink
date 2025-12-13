@@ -16,10 +16,9 @@ interface Service {
 interface BookingWizardProps {
   barberId: string;
   services: Service[];
-  onSuccess?: () => void; // Modal için callback
 }
 
-export function BookingWizard({ barberId, services, onSuccess }: BookingWizardProps) {
+export function BookingWizard({ barberId, services }: BookingWizardProps) {
   const router = useRouter();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -88,11 +87,7 @@ export function BookingWizard({ barberId, services, onSuccess }: BookingWizardPr
 
     if (result.success) {
       alert("Randevunuz başarıyla oluşturuldu!");
-      if (onSuccess) {
-        onSuccess(); // Modal için callback
-      } else {
-        router.push("/customer"); // Müşteri paneline yönlendir
-      }
+      router.push("/customer"); // Müşteri paneline yönlendir
     } else {
       alert(result.error);
     }

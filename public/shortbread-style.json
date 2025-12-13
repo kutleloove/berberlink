@@ -1,0 +1,93 @@
+{
+  "version": 8,
+  "name": "Shortbread",
+  "metadata": {
+    "mapbox:autocomposite": false,
+    "mapbox:type": "template"
+  },
+  "sources": {
+    "shortbread": {
+      "type": "vector",
+      "url": "mbtiles:///tiles/turkey.mbtiles",
+      "tileSize": 512
+    }
+  },
+  "sprite": "",
+  "glyphs": "",
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f8f9fa"
+      }
+    },
+    {
+      "id": "landcover",
+      "type": "fill",
+      "source": "shortbread",
+      "source-layer": "landcover",
+      "paint": {
+        "fill-color": "#e8e8e8"
+      }
+    },
+    {
+      "id": "landuse",
+      "type": "fill",
+      "source": "shortbread",
+      "source-layer": "landuse",
+      "paint": {
+        "fill-color": "#f0f0f0"
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "shortbread",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#aadaff"
+      }
+    },
+    {
+      "id": "roads",
+      "type": "line",
+      "source": "shortbread",
+      "source-layer": "roads",
+      "paint": {
+        "line-color": "#ffffff",
+        "line-width": {
+          "base": 1.2,
+          "stops": [
+            [10, 0.5],
+            [20, 8]
+          ]
+        }
+      }
+    },
+    {
+      "id": "buildings",
+      "type": "fill",
+      "source": "shortbread",
+      "source-layer": "buildings",
+      "paint": {
+        "fill-color": "#e0e0e0"
+      }
+    },
+    {
+      "id": "places",
+      "type": "symbol",
+      "source": "shortbread",
+      "source-layer": "places",
+      "layout": {
+        "text-field": "{name}",
+        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+        "text-size": 12
+      },
+      "paint": {
+        "text-color": "#333333"
+      }
+    }
+  ]
+}
+

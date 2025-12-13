@@ -2,15 +2,23 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Scissors, Search, MapPin, Navigation, X, Calendar, MessageSquare } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Scissors, Search, MapPin, Navigation, X, Calendar, MessageSquare, Star } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { UserButton } from "@clerk/nextjs";
-import AppointmentModal from "@/components/ui/appointment-modal";
+import QuickAppointmentModal from "@/components/ui/quick-appointment-modal";
+import { toggleFavorite } from "@/actions/favorite";
 
 const FullScreenMap = dynamic(() => import("@/components/ui/fullscreen-map"), { 
   ssr: false,
   loading: () => <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-500">Harita Yükleniyor...</div>
 });
+
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+  price: string;
+}
 
 interface Barber {
   id: string;
@@ -22,38 +30,53 @@ interface Barber {
   isActive: boolean;
   averageRating: number | null;
   logoUrl?: string | null;
-  isFavorite?: boolean; // Favorite status eklendi
-  services?: Array<{
-    id: string;
-    name: string;
-    duration: number;
-    price: number | string;
-  }>;
+  isFavorite?: boolean;
+  services?: Service[];
   workingHours?: {
     dayOfWeek: number;
+    startTime: string;
+    endTime: string;
     isClosed: boolean;
-    shifts: {
-      startTime: string;
-      endTime: string;
-    }[];
   }[];
 }
 
-export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[], mapCenter: [number, number] }) {
+export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter }: { barbers: Barber[], favoriteBarbers?: Barber[], mapCenter: [number, number] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [favoriteStatus, setFavoriteStatus] = useState<Record<string, boolean>>(() => {
+    const status: Record<string, boolean> = {};
+    barbers.forEach(barber => {
+      if (barber.isFavorite !== undefined) {
+        status[barber.id] = barber.isFavorite;
+      }
+    });
+    return status;
+  });
+
+  // selectedBarber değiştiğinde favori durumunu güncelle
+  useEffect(() => {
+    if (selectedBarber && selectedBarber.isFavorite !== undefined) {
+      setFavoriteStatus(prev => ({
+        ...prev,
+        [selectedBarber.id]: selectedBarber.isFavorite!,
+      }));
+    }
+  }, [selectedBarber]);
 
   // Arama filtresi
   const filteredBarbers = useMemo(() => {
-    if (!searchQuery.trim()) return barbers;
+    if (!searchQuery.trim()) {
+      // Arama yapılmamışken favori berberleri göster
+      return favoriteBarbers.length > 0 ? favoriteBarbers : barbers;
+    }
     
     const query = searchQuery.toLowerCase();
     return barbers.filter(b => 
       b.shopName.toLowerCase().includes(query) ||
       (b.address && b.address.toLowerCase().includes(query))
     );
-  }, [barbers, searchQuery]);
+  }, [barbers, favoriteBarbers, searchQuery]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden relative">
@@ -101,8 +124,32 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
 
               <div className="space-y-4">
                 <div>
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center font-bold text-3xl text-slate-400 mb-4">
-                    {selectedBarber.shopName[0]}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center font-bold text-3xl text-slate-400">
+                      {selectedBarber.shopName[0]}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!selectedBarber) return;
+                        const result = await toggleFavorite(selectedBarber.id);
+                        if (result && !result.error) {
+                          setFavoriteStatus(prev => ({
+                            ...prev,
+                            [selectedBarber.id]: result.isFavorite,
+                          }));
+                        }
+                      }}
+                      className={`p-2.5 rounded-xl transition-all duration-200 ${
+                        favoriteStatus[selectedBarber.id]
+                          ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
+                          : "bg-slate-100 text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
+                      }`}
+                      title={favoriteStatus[selectedBarber.id] ? "Favorilerden çıkar" : "Favorilere ekle"}
+                    >
+                      <Star 
+                        className={`w-5 h-5 transition-transform duration-200 ${favoriteStatus[selectedBarber.id] ? "fill-current scale-110" : ""}`} 
+                      />
+                    </button>
                   </div>
                   <h2 className="text-2xl font-bold text-slate-900 mb-2">{selectedBarber.shopName}</h2>
                   {selectedBarber.address && (
@@ -115,21 +162,27 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
 
                 <div className="space-y-3">
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
+                    onClick={() => {
                       setIsAppointmentModalOpen(true);
                     }}
-                    className="block w-full bg-slate-900 text-white text-center py-3 rounded-xl font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-2"
+                    className="w-full bg-slate-900 text-white text-center py-3 rounded-xl font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-2"
                   >
                     <Calendar size={18} />
                     Randevu Al
                   </button>
                   
-                  <button className="w-full border border-slate-300 text-slate-900 text-center py-3 rounded-xl font-medium hover:bg-slate-50 transition flex items-center justify-center gap-2">
-                    <Navigation size={18} />
-                    Yol Tarifi
-                  </button>
+                  {selectedBarber.latitude && selectedBarber.longitude && (
+                    <button 
+                      onClick={() => {
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedBarber.latitude},${selectedBarber.longitude}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="w-full border border-slate-300 text-slate-900 text-center py-3 rounded-xl font-medium hover:bg-slate-50 transition flex items-center justify-center gap-2"
+                    >
+                      <Navigation size={18} />
+                      Yol Tarifi
+                    </button>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-slate-200">
@@ -144,7 +197,9 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
             // Berber Listesi
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-slate-900">Sonuçlar</h2>
+                <h2 className="font-semibold text-slate-900">
+                  {searchQuery.trim() ? "Sonuçlar" : favoriteBarbers.length > 0 ? "Favori Berberler" : "Tüm Berberler"}
+                </h2>
                 <span className="text-sm text-slate-500">{filteredBarbers.length} berber</span>
               </div>
 
@@ -184,11 +239,8 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
                               <p className="text-xs text-slate-500">
                                 Çalışma:{" "}
                                 {barber.workingHours
-                                  .filter((wh) => !wh.isClosed && wh.shifts && wh.shifts.length > 0)
-                                  .map((wh) => {
-                                    const shiftStr = wh.shifts.map(s => `${s.startTime}-${s.endTime}`).join(", ");
-                                    return `${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]} ${shiftStr}`;
-                                  })
+                                  .filter((wh) => !wh.isClosed)
+                                  .map((wh) => `${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]} ${wh.startTime}-${wh.endTime}`)
                                   .slice(0, 1)
                                   .join(", ") || "Kapalı"}
                               </p>
@@ -235,15 +287,11 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
               )}
               <div className="space-y-3">
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsAppointmentModalOpen(true);
-                  }}
+                  onClick={() => window.open(`/${selectedBarber.slug}`, "_blank")}
                   className="w-full bg-slate-900 text-white text-center py-3 rounded-xl font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-2"
                 >
                   <Calendar size={18} />
-                  Randevu Al
+                  Randevu Al (Panel)
                 </button>
                 <button className="w-full border border-slate-300 text-slate-900 text-center py-3 rounded-xl font-medium hover:bg-slate-50 transition flex items-center justify-center gap-2">
                   <Navigation size={18} />
@@ -263,14 +311,7 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
                       {selectedBarber.workingHours.map((wh) => (
                         <li key={wh.dayOfWeek} className="flex justify-between">
                           <span>{["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]}</span>
-                          <span>
-                            {wh.isClosed 
-                              ? "Kapalı" 
-                              : wh.shifts && wh.shifts.length > 0
-                                ? wh.shifts.map((shift, idx) => `${shift.startTime} - ${shift.endTime}`).join(", ")
-                                : "Bilgi yok"
-                            }
-                          </span>
+                          <span>{wh.isClosed ? "Kapalı" : `${wh.startTime} - ${wh.endTime}`}</span>
                         </li>
                       ))}
                     </ul>
@@ -297,36 +338,37 @@ export default function MapPageClient({ barbers, mapCenter }: { barbers: Barber[
             : mapCenter
           }
           selectedBarberId={selectedBarber?.id}
-          onMarkerClick={setSelectedBarber}
-          onBookAppointment={(barber) => {
-            // Popup'tan gelen berberi bul ve modal'ı aç
-            const foundBarber = barbers.find(b => b.id === barber.id);
-            if (foundBarber) {
-              setSelectedBarber(foundBarber);
-              setIsAppointmentModalOpen(true);
+          onMarkerClick={(barber) => {
+            if (!barber) {
+              setSelectedBarber(null);
+              return;
             }
+            setSelectedBarber(barber);
+            // Favori durumunu güncelle
+            if (barber.isFavorite !== undefined) {
+              setFavoriteStatus(prev => ({
+                ...prev,
+                [barber.id]: barber.isFavorite,
+              }));
+            }
+          }}
+          onBookAppointment={(barber) => {
+            setSelectedBarber(barber);
+            setIsAppointmentModalOpen(true);
           }}
         />
       </div>
 
-      {/* Appointment Modal */}
-      {selectedBarber && (
-        <AppointmentModal
-          barberId={selectedBarber.id}
-          barberName={selectedBarber.shopName}
-          services={selectedBarber.services && selectedBarber.services.length > 0 
-            ? selectedBarber.services.map(s => ({
-                id: s.id,
-                name: s.name,
-                duration: s.duration,
-                price: typeof s.price === 'number' ? s.price.toString() : String(s.price),
-              }))
-            : []
-          }
+      {/* Quick Appointment Modal */}
+      {selectedBarber && isAppointmentModalOpen && (
+        <QuickAppointmentModal
           isOpen={isAppointmentModalOpen}
           onClose={() => {
             setIsAppointmentModalOpen(false);
           }}
+          barberId={selectedBarber.id}
+          barberName={selectedBarber.shopName}
+          services={selectedBarber.services || []}
         />
       )}
     </div>

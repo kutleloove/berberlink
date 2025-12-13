@@ -103,6 +103,27 @@ export async function getFavoriteBarbers() {
                     image: true,
                   },
                 },
+                workingHours: {
+                  select: {
+                    dayOfWeek: true,
+                    isClosed: true,
+                    shifts: {
+                      select: {
+                        startTime: true,
+                        endTime: true,
+                      },
+                    },
+                  },
+                  orderBy: { dayOfWeek: "asc" }
+                },
+                services: {
+                  select: {
+                    id: true,
+                    name: true,
+                    duration: true,
+                    price: true,
+                  },
+                },
               },
             },
           },

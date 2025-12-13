@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Star, MapPin } from "lucide-react";
+import { Star, MapPin, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { toggleFavorite } from "@/actions/favorite";
+import QuickAppointmentModal from "./quick-appointment-modal";
+
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+  price: string;
+}
 
 interface BarberPopupProps {
   barber: {
@@ -13,20 +22,45 @@ interface BarberPopupProps {
     address: string | null;
     logoUrl?: string | null;
     averageRating: number | null;
-    isFavorite?: boolean; // Favorite status prop olarak eklendi
+    services?: Service[];
   };
   onBookAppointment?: (barber: BarberPopupProps['barber']) => void;
+  isFavorite?: boolean;
 }
 
-export default function BarberPopup({ barber, onBookAppointment }: BarberPopupProps) {
-  // Initial favorite status'u prop'tan al, sonra toggleFavorite ile güncelle
-  const [isFavorite, setIsFavorite] = useState(barber.isFavorite || false);
+export default function BarberPopup({ barber, onBookAppointment, isFavorite: initialIsFavorite }: BarberPopupProps) {
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite || false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
 
-  // Barber prop'u değiştiğinde favorite status'u güncelle
   useEffect(() => {
-    setIsFavorite(barber.isFavorite || false);
-  }, [barber.id, barber.isFavorite]);
+    setMounted(true);
+  }, []);
+
+  // barber prop'u değiştiğinde isFavorite state'ini güncelle
+  useEffect(() => {
+    setIsFavorite(initialIsFavorite || false);
+  }, [initialIsFavorite]);
+
+  // Modal state değişikliğini debug et
+  useEffect(() => {
+    console.log("BarberPopup: isAppointmentModalOpen changed to", isAppointmentModalOpen);
+  }, [isAppointmentModalOpen]);
+
+  if (!mounted) {
+    return (
+      <div className="w-full p-0" style={{ width: '300px', minWidth: '300px', maxWidth: '300px' }}>
+        <div className="animate-pulse bg-white rounded-xl overflow-hidden shadow-lg">
+          <div className="h-20 bg-gradient-to-r from-slate-100 to-slate-200"></div>
+          <div className="p-4 space-y-3">
+            <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -44,93 +78,121 @@ export default function BarberPopup({ barber, onBookAppointment }: BarberPopupPr
   const hasRating = barber.averageRating !== null && barber.averageRating > 0;
 
   return (
-    <div className="w-full" style={{ width: '280px', minWidth: '280px', maxWidth: '280px' }}>
-      {/* Header with logo and favorite */}
-      <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-t-lg">
-        <div className="flex items-start gap-3">
-          {/* Logo */}
-          <div className="w-16 h-16 rounded-xl bg-white border-2 border-slate-200 overflow-hidden flex-shrink-0 shadow-sm">
-            {barber.logoUrl ? (
-              <img 
-                src={barber.logoUrl} 
-                alt={barber.shopName}
-                className="w-full h-full object-cover"
+    <div className="w-full p-0" style={{ width: '300px', minWidth: '300px', maxWidth: '300px' }}>
+      <div className="bg-white rounded-xl overflow-hidden shadow-xl border border-slate-100">
+        {/* Header with gradient background */}
+        <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-5 border-b border-slate-100">
+          <div className="flex items-start gap-4">
+            {/* Logo with better styling */}
+            <div className="relative w-20 h-20 rounded-2xl bg-white border-3 border-white shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-slate-100">
+              {barber.logoUrl ? (
+                <img 
+                  src={barber.logoUrl} 
+                  alt={barber.shopName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-2xl">
+                  {barber.shopName[0]?.toUpperCase() || "B"}
+                </div>
+              )}
+            </div>
+
+            {/* Shop name and rating */}
+            <div className="flex-1 min-w-0 pt-1">
+              <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-2 leading-tight">
+                {barber.shopName}
+              </h3>
+              
+              {/* Rating with improved design */}
+              {hasRating && (
+                <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <span className="text-sm font-bold text-slate-900">
+                    {rating.toFixed(1)}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">/ 5.0</span>
+                </div>
+              )}
+            </div>
+
+            {/* Favorite button with improved design */}
+            <button
+              onClick={handleFavoriteClick}
+              disabled={isLoading}
+              className={`flex-shrink-0 p-2.5 rounded-xl transition-all duration-200 ${
+                isFavorite
+                  ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
+                  : "bg-white/80 backdrop-blur-sm text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
+              } ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              title={isFavorite ? "Favorilerden çıkar" : "Favorilere ekle"}
+            >
+              <Star 
+                className={`w-5 h-5 transition-transform duration-200 ${isFavorite ? "fill-current scale-110" : ""}`} 
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-600 font-bold text-xl">
-                {barber.shopName[0]?.toUpperCase() || "B"}
-              </div>
-            )}
+            </button>
           </div>
-
-          {/* Shop name and rating */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-base text-slate-900 mb-1 line-clamp-2">
-              {barber.shopName}
-            </h3>
-            
-            {/* Rating */}
-            {hasRating && (
-              <div className="flex items-center gap-1 mb-2">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="text-sm font-semibold text-slate-700">
-                  {rating.toFixed(1)}
-                </span>
-                <span className="text-xs text-slate-500">/ 5.0</span>
-              </div>
-            )}
-          </div>
-
-          {/* Favorite button */}
-          <button
-            onClick={handleFavoriteClick}
-            disabled={isLoading}
-            className={`flex-shrink-0 p-2 rounded-lg transition-all ${
-              isFavorite
-                ? "bg-amber-50 text-amber-500 hover:bg-amber-100"
-                : "bg-white text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200"
-            } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            title={isFavorite ? "Favorilerden çıkar" : "Favorilere ekle"}
-          >
-            <Star 
-              className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} 
-            />
-          </button>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="p-4 space-y-3">
-        {/* Address */}
-        {barber.address && (
-          <div className="flex items-start gap-2 text-sm text-slate-600">
-            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-            <span className="line-clamp-2">{barber.address}</span>
-          </div>
-        )}
+        {/* Content */}
+        <div className="p-5 space-y-4 bg-white">
+          {/* Address with improved styling */}
+          {barber.address && (
+            <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex-shrink-0 mt-0.5">
+                <MapPin className="w-4 h-4 text-slate-500" />
+              </div>
+              <span className="text-sm text-slate-700 leading-relaxed line-clamp-2 font-medium">
+                {barber.address}
+              </span>
+            </div>
+          )}
 
-        {/* Book button */}
-        {onBookAppointment ? (
+          {/* Book button with improved design */}
           <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onBookAppointment(barber);
+              console.log("Randevu Al button clicked", { 
+                hasOnBookAppointment: !!onBookAppointment, 
+                barberId: barber.id,
+                servicesCount: barber.services?.length || 0,
+                currentState: isAppointmentModalOpen
+              });
+              
+              // Modal'ı aç - callback'i çağırmadan önce
+              console.log("Setting modal state to true...");
+              setIsAppointmentModalOpen(true);
+              
+              // Callback'i çağırma - çünkü bu map-page-client'taki state'i güncelliyor
+              // ve barber-popup'taki state ile çakışıyor
+              // if (onBookAppointment) {
+              //   console.log("Calling onBookAppointment callback");
+              //   onBookAppointment(barber);
+              // }
             }}
-            className="block w-full bg-slate-900 text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
+            className="w-full bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white text-center py-3.5 rounded-xl text-sm font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
           >
-            Randevu Al
+            <Calendar className="w-4 h-4" />
+            <span>Randevu Al</span>
           </button>
-        ) : (
-          <Link 
-            href={`/${barber.slug}`}
-            className="block w-full bg-slate-900 text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Randevu Al
-          </Link>
-        )}
+        </div>
       </div>
+
+      {/* Quick Appointment Modal - Portal ile render et */}
+      {mounted && isAppointmentModalOpen && createPortal(
+        <QuickAppointmentModal
+          isOpen={isAppointmentModalOpen}
+          onClose={() => {
+            console.log("Closing modal from BarberPopup");
+            setIsAppointmentModalOpen(false);
+          }}
+          barberId={barber.id}
+          barberName={barber.shopName}
+          services={barber.services || []}
+        />,
+        document.body
+      )}
     </div>
   );
 }

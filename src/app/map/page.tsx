@@ -1,29 +1,9 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import MapPageClient from "./_components/map-page-client";
+import { getFavoriteBarbers } from "@/actions/favorite";
 
 export default async function MapPage() {
-  // Kullanıcı bilgisini al (favorite status için)
-  const user = await currentUser();
-  let favoriteBarberIds: string[] = [];
-  
-  if (user) {
-    const dbUser = await db.user.findUnique({
-      where: { email: user.emailAddresses[0]?.emailAddress },
-      include: {
-        favorites: {
-          select: {
-            barberId: true,
-          },
-        },
-      },
-    });
-    
-    if (dbUser) {
-      favoriteBarberIds = dbUser.favorites.map((f) => f.barberId);
-    }
-  }
-
   // Tüm berberleri çek (konum bilgisi olanlar)
   const allBarbers = await db.profile.findMany({
     where: {
@@ -44,14 +24,6 @@ export default async function MapPage() {
           image: true,
         },
       },
-      services: {
-        select: {
-          id: true,
-          name: true,
-          duration: true,
-          price: true,
-        },
-      },
       workingHours: {
         select: {
           dayOfWeek: true,
@@ -64,7 +36,15 @@ export default async function MapPage() {
           },
         },
         orderBy: { dayOfWeek: "asc" }
-      }
+      },
+      services: {
+        select: {
+          id: true,
+          name: true,
+          duration: true,
+          price: true,
+        },
+      },
     }
   });
 
@@ -75,18 +55,72 @@ export default async function MapPage() {
     : [41.0082, 28.9784]; // İstanbul
 
   // Veriyi dönüştür: logoUrl'i user.image'den al ve user field'ını kaldır
-  // Decimal price'ı string'e çevir (Prisma Decimal tipini serialize etmek için)
+  // Decimal price'ı string'e çevir
   const barbersWithLogo = allBarbers.map(({ user, services, ...barber }) => ({
     ...barber,
     logoUrl: user?.image || null,
-    isFavorite: favoriteBarberIds.includes(barber.id), // Favorite status ekle
-    services: services?.map(service => ({
-      id: service.id,
-      name: service.name,
-      duration: service.duration,
-      price: service.price.toString(), // Prisma Decimal'ı string'e çevir
-    })) || [],
+    services: services?.map(service => {
+      let priceValue: string;
+      if (service.price === null || service.price === undefined) {
+        priceValue = "0";
+      } else if (typeof service.price === 'object' && 'toNumber' in service.price) {
+        priceValue = service.price.toNumber().toString();
+      } else {
+        priceValue = String(service.price);
+      }
+      
+      return {
+        id: service.id,
+        name: service.name,
+        duration: service.duration,
+        price: priceValue,
+      };
+    }) || [],
   }));
 
-  return <MapPageClient barbers={barbersWithLogo} mapCenter={mapCenter} />;
+  // Favori berberleri çek
+  const favoriteBarbersData = await getFavoriteBarbers();
+  
+  // Favori berber ID'lerini çıkar
+  const favoriteBarberIds = new Set(favoriteBarbersData.map(b => b.id));
+  
+  // Tüm berberlere isFavorite bilgisini ekle
+  const barbersWithFavorite = barbersWithLogo.map(barber => ({
+    ...barber,
+    isFavorite: favoriteBarberIds.has(barber.id),
+  }));
+  
+  // Favori berberleri aynı formata dönüştür
+  const favoriteBarbers = favoriteBarbersData
+    .filter(barber => barber.latitude && barber.longitude)
+    .map(({ user, services, workingHours, ...barber }) => ({
+      ...barber,
+      logoUrl: user?.image || null,
+      isFavorite: true, // Favori berberler listesindeki tüm berberler favori
+      services: services?.map(service => {
+        let priceValue: string;
+        if (service.price === null || service.price === undefined) {
+          priceValue = "0";
+        } else if (typeof service.price === 'object' && 'toNumber' in service.price) {
+          priceValue = service.price.toNumber().toString();
+        } else {
+          priceValue = String(service.price);
+        }
+        
+        return {
+          id: service.id,
+          name: service.name,
+          duration: service.duration,
+          price: priceValue,
+        };
+      }) || [],
+      workingHours: workingHours?.map(wh => ({
+        dayOfWeek: wh.dayOfWeek,
+        isClosed: wh.isClosed,
+        startTime: wh.shifts[0]?.startTime || "",
+        endTime: wh.shifts[0]?.endTime || "",
+      })) || [],
+    }));
+
+  return <MapPageClient barbers={barbersWithFavorite} favoriteBarbers={favoriteBarbers} mapCenter={mapCenter} />;
 }

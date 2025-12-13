@@ -44,3 +44,15 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# vector tiles (large files, should not be committed)
+*.mbtiles
+/tiles/*.mbtiles
+/tiles/*.pbf
+
+# Docs
+/docs/
+/data/
+
+planetiler.jar
+docker-compose.yml

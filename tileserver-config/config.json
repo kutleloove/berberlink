@@ -1,0 +1,32 @@
+{
+  "options": {
+    "paths": {
+      "root": "/data",
+      "fonts": "/fonts",
+      "sprites": "/sprites",
+      "styles": "/styles",
+      "mbtiles": "/data"
+    },
+    "serveAllFonts": false,
+    "serveAllStyles": false,
+    "maxzoom": 14,
+    "maxsize": 2048,
+    "pbfAlias": "pbf",
+    "cors": true
+  },
+  "data": {
+    "turkey": {
+      "mbtiles": "turkey.mbtiles"
+    }
+  },
+  "styles": {
+    "basic": {
+      "style": "basic.json",
+      "tilejson": {
+        "bounds": [25.0, 35.0, 45.0, 43.0],
+        "center": [35.0, 39.0, 6]
+      }
+    }
+  }
+}
+
