@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 interface Shift {
   startTime: string;
   endTime: string;
+  staffId?: string | null;
+  staffName?: string | null;
 }
 
 interface WorkingHour {
@@ -16,9 +18,14 @@ interface WorkingHour {
   shifts: Shift[];
 }
 
+interface Staff {
+  id: string;
+  name: string;
+}
+
 const DAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
 
-export function WorkingHoursForm({ existingHours }: { existingHours: WorkingHour[] }) {
+export function WorkingHoursForm({ existingHours, staffList = [] }: { existingHours: WorkingHour[], staffList?: Staff[] }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -154,7 +161,7 @@ export function WorkingHoursForm({ existingHours }: { existingHours: WorkingHour
             {!isClosed && (
               <div className="space-y-3 ml-40">
                 {Array.from({ length: count }).map((_, shiftIndex) => {
-                  const shift = shifts[shiftIndex] || { startTime: "09:00", endTime: "17:00" };
+                  const shift = shifts[shiftIndex] || { startTime: "09:00", endTime: "17:00", staffId: null };
                   
                   return (
                     <div key={shiftIndex} className="flex items-center gap-3 bg-white/60 rounded-xl p-3 border border-slate-200/60">
@@ -174,6 +181,20 @@ export function WorkingHoursForm({ existingHours }: { existingHours: WorkingHour
                           className="border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none transition-all bg-white shadow-sm hover:shadow"
                           required
                         />
+                        {staffList.length > 0 && (
+                          <select
+                            name={`shift-${index}-${shiftIndex}-staff`}
+                            defaultValue={shift.staffId || ""}
+                            className="border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none transition-all bg-white shadow-sm hover:shadow min-w-[150px]"
+                          >
+                            <option value="">Personel Seçin</option>
+                            {staffList.map(staff => (
+                              <option key={staff.id} value={staff.id}>
+                                {staff.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </div>
                       {count > 1 && (
                         <button

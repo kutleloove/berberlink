@@ -1,8 +1,9 @@
 "use client";
 
-import { X, ChevronLeft, ChevronRight, Calendar, Clock } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Calendar, Clock, ArrowLeft, CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createAppointment } from "@/actions/appointment";
+import { getStaffForService, getAvailableSlots, isDateAvailable } from "@/actions/availability";
 
 interface Service {
   id: string;
@@ -48,53 +49,112 @@ export default function QuickAppointmentModal({
       console.log("QuickAppointmentModal opened", { barberId, barberName, servicesCount: services.length });
     }
   }, [isOpen, barberId, barberName, services.length]);
+  const [step, setStep] = useState(1); // 1: Service, 2: Staff, 3: Date, 4: Time
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [availableStaff, setAvailableStaff] = useState<Array<{ id: string; name: string; role?: { name: string } | null }>>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set());
-  const [availableHours, setAvailableHours] = useState<string[]>([]);
-  const [unavailableHours, setUnavailableHours] = useState<string[]>([]);
-  const [selectedHour, setSelectedHour] = useState<string | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<Date[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingDates, setFetchingDates] = useState(false);
-  const [fetchingHours, setFetchingHours] = useState(false);
+  const [fetchingSlots, setFetchingSlots] = useState(false);
+  const [fetchingStaff, setFetchingStaff] = useState(false);
 
-  // Modal açıldığında veya ay değiştiğinde tarihleri çek
+  // Hizmet seçildiğinde personelleri çek
+  useEffect(() => {
+    if (step === 2 && selectedServices.length > 0 && isOpen) {
+      setFetchingStaff(true);
+      Promise.all(
+        selectedServices.map(serviceId => getStaffForService(barberId, serviceId))
+      ).then(staffArrays => {
+        const allStaff = staffArrays.flat();
+        const uniqueStaff = allStaff.filter((staff, index, self) => 
+          index === self.findIndex(s => s.id === staff.id)
+        );
+        setAvailableStaff(uniqueStaff);
+        setFetchingStaff(false);
+        
+        if (uniqueStaff.length === 1) {
+          setSelectedStaffId(uniqueStaff[0].id);
+          // Tek personel varsa otomatik olarak step 3'e geç
+          setTimeout(() => {
+            setStep(3);
+          }, 300);
+        } else {
+          setSelectedStaffId("");
+        }
+      });
+    }
+  }, [step, selectedServices, barberId, isOpen]);
+
+  // Personel seçildiğinde otomatik olarak step 3'e geç
+  useEffect(() => {
+    if (step === 2 && selectedStaffId && !fetchingStaff && availableStaff.length > 1) {
+      const timer = setTimeout(() => {
+        setStep(3);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedStaffId, fetchingStaff, step, availableStaff.length]);
+
+  // Modal açıldığında step'i sıfırla
   useEffect(() => {
     if (isOpen) {
+      setStep(1);
+      setSelectedServices([]);
+      setSelectedStaffId("");
+      setSelectedDate(null);
+      setSelectedSlot(null);
+    }
+  }, [isOpen]);
+
+  // Modal açıldığında veya ay değiştiğinde tarihleri çek (Step 3)
+  useEffect(() => {
+    if (isOpen && step === 3 && selectedStaffId) {
       fetchDates();
     }
-  }, [isOpen, currentMonth, currentYear, barberId]);
+  }, [isOpen, currentMonth, currentYear, barberId, step, selectedStaffId]);
 
-  // Tarihler yüklendiğinde en yakın müsait tarihi seç (gerçekten müsait saat olan)
-  useEffect(() => {
-    if (isOpen && availableDates.size > 0 && !selectedDate && !fetchingDates) {
-      findAndSelectNextAvailableDate();
-    }
-  }, [isOpen, availableDates, unavailableDates, currentMonth, currentYear, fetchingDates]);
 
-  // Tarih seçildiğinde saatleri çek
+  // Tarih seçildiğinde saatleri çek (Step 4)
   useEffect(() => {
-    if (selectedDate) {
-      fetchHours(selectedDate);
-    } else {
-      setAvailableHours([]);
-      setUnavailableHours([]);
-      setSelectedHour(null);
+    if (step === 4 && selectedDate && selectedStaffId) {
+      setFetchingSlots(true);
+      getAvailableSlots(barberId, new Date(selectedDate), selectedStaffId)
+        .then(slots => {
+          setAvailableSlots(slots);
+          setSelectedSlot(null);
+        })
+        .finally(() => setFetchingSlots(false));
     }
-  }, [selectedDate, barberId]);
+  }, [step, selectedDate, selectedStaffId, barberId]);
 
   const fetchDates = async () => {
     setFetchingDates(true);
     try {
-      const response = await fetch(
-        `/api/barber/${barberId}/availability?month=${currentMonth}&year=${currentYear}`
+      const today = new Date();
+      const dates = new Set<string>();
+      
+      // 30 gün ileriye bak
+      await Promise.all(
+        Array.from({ length: 30 }).map(async (_, i) => {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+          const dateStr = date.toISOString().split('T')[0];
+          
+          const available = await isDateAvailable(barberId, date, selectedStaffId);
+          if (available) {
+            dates.add(dateStr);
+          }
+        })
       );
-      const data = await response.json();
-      setAvailableDates(new Set(data.availableDates || []));
-      setUnavailableDates(new Set(data.unavailableDates || []));
+      
+      setAvailableDates(dates);
     } catch (error) {
       console.error("Error fetching dates:", error);
     } finally {
@@ -102,127 +162,6 @@ export default function QuickAppointmentModal({
     }
   };
 
-  const fetchHours = async (date: string) => {
-    setFetchingHours(true);
-    try {
-      const response = await fetch(
-        `/api/barber/${barberId}/availability?date=${date}`
-      );
-      const data = await response.json();
-      const hours = data.availableHours || [];
-      const unavailable = data.unavailableHours || [];
-      
-      setAvailableHours(hours);
-      setUnavailableHours(unavailable);
-      
-      // Eğer müsait saat yoksa, bu tarihi unavailable olarak işaretle
-      if (hours.length === 0) {
-        setUnavailableDates(prev => {
-          const newSet = new Set(prev);
-          newSet.add(date);
-          return newSet;
-        });
-        setAvailableDates(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(date);
-          return newSet;
-        });
-        
-        // En yakın müsait tarihi bul ve seç
-        findAndSelectNextAvailableDate();
-      }
-    } catch (error) {
-      console.error("Error fetching hours:", error);
-    } finally {
-      setFetchingHours(false);
-    }
-  };
-
-  // En yakın müsait tarihi bul ve seç (gerçekten müsait saat olan)
-  const findAndSelectNextAvailableDate = async () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Önce mevcut ay içinde ara
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const datesToCheck: string[] = [];
-    
-    for (let day = 1; day <= lastDayOfMonth; day++) {
-      const checkDate = new Date(currentYear, currentMonth, day);
-      const checkDateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
-      
-      // Geçmiş tarihleri atla (bugün dahil değil, bugünü de kontrol etmeliyiz)
-      if (checkDate < today) {
-        continue;
-      }
-      
-      // Eğer bu tarih available ise ve unavailable değilse
-      if (availableDates.has(checkDateStr) && !unavailableDates.has(checkDateStr)) {
-        datesToCheck.push(checkDateStr);
-      }
-    }
-    
-    // Mevcut ay içinde bulunamadı, sonraki ayın ilk günlerine bak
-    if (datesToCheck.length === 0) {
-      const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
-      const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
-      
-      for (let day = 1; day <= 31; day++) {
-        const checkDate = new Date(nextYear, nextMonth, day);
-        
-        // Eğer ay değiştiyse dur
-        if (checkDate.getMonth() !== nextMonth) {
-          break;
-        }
-        
-        const checkDateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
-        
-        // Eğer bu tarih available ise ve unavailable değilse
-        if (availableDates.has(checkDateStr) && !unavailableDates.has(checkDateStr)) {
-          datesToCheck.push(checkDateStr);
-        }
-      }
-      
-      // Sonraki ay için tarihleri çek
-      if (datesToCheck.length > 0) {
-        setCurrentMonth(nextMonth);
-        setCurrentYear(nextYear);
-        // Ay değişti, tarihler yeniden yüklenecek, bu fonksiyon tekrar çağrılacak
-        return;
-      }
-    }
-    
-    // Tarihleri sırayla kontrol et, ilk müsait saati olan tarihi seç
-    for (const dateStr of datesToCheck) {
-      try {
-        const response = await fetch(
-          `/api/barber/${barberId}/availability?date=${dateStr}`
-        );
-        const data = await response.json();
-        const hours = data.availableHours || [];
-        
-        // Eğer bu tarih için müsait saat varsa, seç
-        if (hours.length > 0) {
-          setSelectedDate(dateStr);
-          return;
-        } else {
-          // Müsait saat yok, bu tarihi unavailable olarak işaretle
-          setUnavailableDates(prev => {
-            const newSet = new Set(prev);
-            newSet.add(dateStr);
-            return newSet;
-          });
-          setAvailableDates(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(dateStr);
-            return newSet;
-          });
-        }
-      } catch (error) {
-        console.error(`Error checking hours for ${dateStr}:`, error);
-      }
-    }
-  };
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
@@ -249,20 +188,20 @@ export default function QuickAppointmentModal({
   };
 
   const handleBooking = async () => {
-    if (!selectedDate || !selectedHour || selectedServices.length === 0) return;
+    if (!selectedSlot || selectedServices.length === 0) return;
 
     setLoading(true);
     try {
-      const [hours, minutes] = selectedHour.split(":").map(Number);
-      const appointmentDate = new Date(selectedDate);
-      appointmentDate.setHours(hours, minutes, 0, 0);
-
-      const result = await createAppointment(barberId, selectedServices, appointmentDate);
+      const result = await createAppointment(
+        barberId, 
+        selectedServices, 
+        selectedSlot,
+        selectedStaffId || undefined
+      );
       
       if (result.success) {
         alert("Randevunuz başarıyla oluşturuldu!");
         onClose();
-        // Sayfayı yenile veya state'i güncelle
         window.location.reload();
       } else {
         alert(result.error || "Randevu oluşturulamadı");
@@ -292,11 +231,16 @@ export default function QuickAppointmentModal({
     // Ayın günleri
     for (let date = 1; date <= daysInMonth; date++) {
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const checkDate = new Date(currentYear, currentMonth, date);
+      checkDate.setHours(0, 0, 0, 0);
+      
       days.push({
         date,
         dateStr,
-        isAvailable: availableDates.has(dateStr),
-        isUnavailable: unavailableDates.has(dateStr),
+        isAvailable: availableDates.has(dateStr) && checkDate >= today,
+        isUnavailable: false, // Artık unavailableDates kullanmıyoruz, sadece availableDates kontrol ediyoruz
       });
     }
 
@@ -331,7 +275,7 @@ export default function QuickAppointmentModal({
           // Mobilde: sağdan açılan tam ekran panel
           // Desktop'ta: ortalanmış modal
           "w-full md:w-[600px] md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:max-h-[90vh] md:inset-y-auto"
-        } flex flex-col animate-slide-in-right md:animate-fade-in`}
+        } flex flex-col animate-slide-in-right md:animate-fade-in-modal`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -352,11 +296,12 @@ export default function QuickAppointmentModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-          {/* Hizmet Seçimi */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">
-              Hizmet Seçin
-            </h3>
+          {/* Step 1: Hizmet Seçimi */}
+          {step === 1 && (
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                Hizmet Seçin
+              </h3>
             <div className="space-y-2">
               {services.length === 0 ? (
                 <p className="text-sm text-slate-500">Henüz hizmet eklenmemiş.</p>
@@ -394,11 +339,102 @@ export default function QuickAppointmentModal({
                   Toplam: <span className="font-bold text-slate-900">{totalPrice.toFixed(2)} ₺</span>
                 </p>
               </div>
-            )}
-          </div>
+              )}
+              <div className="flex items-center justify-end gap-3 mt-6 border-t pt-4">
+                <button
+                  onClick={() => setStep(2)}
+                  disabled={selectedServices.length === 0}
+                  className="bg-slate-900 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 hover:bg-slate-800 transition flex items-center gap-2"
+                >
+                  Devam Et
+                  <ArrowLeft className="rotate-180" size={18} />
+                </button>
+              </div>
+            </div>
+          )}
 
-          {/* Tarih Seçimi */}
-          <div>
+          {/* Step 2: Personel Seçimi */}
+          {step === 2 && (
+            <div className="animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Personel Seçin
+                </h3>
+                <button 
+                  onClick={() => setStep(1)} 
+                  className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                >
+                  <ArrowLeft size={16} />
+                  Geri Dön
+                </button>
+              </div>
+              {fetchingStaff ? (
+                <div className="flex justify-center py-8 text-slate-500">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+                </div>
+              ) : availableStaff.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                  Seçili hizmetlere atanmış personel bulunmuyor.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {availableStaff.map(staff => (
+                    <button
+                      key={staff.id}
+                      onClick={() => setSelectedStaffId(staff.id)}
+                      className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-200 ${
+                        selectedStaffId === staff.id
+                          ? "border-slate-900 bg-slate-50 scale-[1.02]"
+                          : "border-slate-200 hover:border-slate-300 hover:scale-[1.01]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-slate-900">{staff.name}</p>
+                          {staff.role && (
+                            <p className="text-xs text-slate-500 mt-1">{staff.role.name}</p>
+                          )}
+                        </div>
+                        {selectedStaffId === staff.id && (
+                          <CheckCircle className="text-slate-900 animate-scale-in" size={20} />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedStaffId && !fetchingStaff && (
+                <div className="text-sm text-slate-500 text-center mt-6 animate-pulse">
+                  Tarih seçimine geçiliyor...
+                </div>
+              )}
+              <div className="flex items-center justify-start gap-3 mt-6 border-t pt-4">
+                <button
+                  onClick={() => setStep(1)}
+                  className="px-6 py-3 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition"
+                >
+                  Geri Dön
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Tarih Seçimi */}
+          {step === 3 && (
+            <div className="animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Tarih Seçin
+                </h3>
+                <button 
+                  onClick={() => setStep(2)} 
+                  className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                >
+                  <ArrowLeft size={16} />
+                  Geri Dön
+                </button>
+              </div>
             <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Tarih Seçin
@@ -457,18 +493,22 @@ export default function QuickAppointmentModal({
                       onClick={() => {
                         if (day.isAvailable) {
                           setSelectedDate(day.dateStr);
+                          // Tarih seçildiğinde otomatik olarak step 4'e geç
+                          setTimeout(() => {
+                            setStep(4);
+                          }, 300);
                         }
                       }}
                       disabled={!day.isAvailable}
-                      className={`h-12 rounded-lg text-sm font-medium transition-all relative ${
+                      className={`h-12 rounded-lg text-sm font-medium transition-all duration-200 relative ${
                         day.isUnavailable
                           ? "text-red-400 line-through bg-red-50 cursor-not-allowed"
                           : day.isAvailable
                           ? isSelected
-                            ? "bg-slate-900 text-white"
+                            ? "bg-slate-900 text-white scale-105"
                             : isToday
-                            ? "bg-blue-100 text-blue-900 hover:bg-blue-200"
-                            : "bg-slate-50 text-slate-900 hover:bg-slate-100"
+                            ? "bg-blue-100 text-blue-900 hover:bg-blue-200 hover:scale-105"
+                            : "bg-slate-50 text-slate-900 hover:bg-slate-100 hover:scale-105"
                           : "text-slate-300 bg-slate-50 cursor-not-allowed"
                       }`}
                     >
@@ -478,51 +518,65 @@ export default function QuickAppointmentModal({
                 })}
               </div>
             )}
-          </div>
+              {selectedDate && !fetchingDates && (
+                <div className="text-sm text-slate-500 text-center mt-6 animate-pulse">
+                  Saat seçimine geçiliyor...
+                </div>
+              )}
+              <div className="flex items-center justify-start gap-3 mt-6 border-t pt-4">
+                <button
+                  onClick={() => setStep(2)}
+                  className="px-6 py-3 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition"
+                >
+                  Geri Dön
+                </button>
+              </div>
+            </div>
+          )}
 
-          {/* Saat Seçimi */}
-          {selectedDate && (
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Saat Seçin
-              </h3>
+          {/* Step 4: Saat Seçimi */}
+          {step === 4 && (
+            <div className="animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Saat Seçin
+                </h3>
+                <button 
+                  onClick={() => setStep(3)} 
+                  className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                >
+                  <ArrowLeft size={16} />
+                  Geri Dön
+                </button>
+              </div>
 
-              {fetchingHours ? (
+              {fetchingSlots ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
                 </div>
-              ) : availableHours.length === 0 && unavailableHours.length === 0 ? (
+              ) : availableSlots.length === 0 ? (
                 <p className="text-sm text-slate-500">Bu tarih için müsait saat bulunamadı.</p>
               ) : (
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                  {[...availableHours, ...unavailableHours]
-                    .sort()
-                    .map((hour) => {
-                      const isAvailable = availableHours.includes(hour);
-                      const isSelected = selectedHour === hour;
+                  {availableSlots.map((slot, idx) => {
+                    const timeStr = new Date(slot).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                    const isSelected = selectedSlot && selectedSlot.getTime() === slot.getTime();
 
-                      return (
-                        <button
-                          key={hour}
-                          onClick={() => {
-                            if (isAvailable) {
-                              setSelectedHour(hour);
-                            }
-                          }}
-                          disabled={!isAvailable}
-                          className={`p-3 rounded-lg text-sm font-medium transition-all ${
-                            !isAvailable
-                              ? "text-red-400 line-through bg-red-50 cursor-not-allowed"
-                              : isSelected
-                              ? "bg-slate-900 text-white"
-                              : "bg-slate-50 text-slate-900 hover:bg-slate-100"
-                          }`}
-                        >
-                          {hour}
-                        </button>
-                      );
-                    })}
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          isSelected
+                            ? "bg-slate-900 text-white scale-105"
+                            : "bg-slate-50 text-slate-900 hover:bg-slate-100 hover:scale-105"
+                        }`}
+                      >
+                        {timeStr}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -535,9 +589,10 @@ export default function QuickAppointmentModal({
             onClick={handleBooking}
             disabled={
               loading ||
+              step !== 4 ||
               selectedServices.length === 0 ||
               !selectedDate ||
-              !selectedHour
+              !selectedSlot
             }
             className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >

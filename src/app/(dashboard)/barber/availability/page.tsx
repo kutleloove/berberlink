@@ -15,9 +15,25 @@ export default async function AvailabilityPage() {
           workingHours: {
             include: {
               shifts: {
+                include: {
+                  staff: {
+                    select: {
+                      id: true,
+                      name: true
+                    }
+                  }
+                },
                 orderBy: { startTime: "asc" }
               }
             }
+          },
+          staff: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              name: true
+            },
+            orderBy: { name: "asc" }
           }
         }
       }
@@ -34,9 +50,13 @@ export default async function AvailabilityPage() {
     isClosed: wh.isClosed,
     shifts: wh.shifts.map(s => ({
       startTime: s.startTime,
-      endTime: s.endTime
+      endTime: s.endTime,
+      staffId: s.staffId || null,
+      staffName: s.staff?.name || null
     }))
   }));
+
+  const staffList = dbUser.profile.staff;
 
   return (
     <div className="p-6 md:p-10 lg:p-12 max-w-5xl mx-auto">
@@ -50,7 +70,7 @@ export default async function AvailabilityPage() {
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Haftalık Program</h2>
           <p className="text-slate-500 text-sm">Her gün için çalışma saatlerinizi ve vardiyalarınızı belirleyin</p>
         </div>
-        <WorkingHoursForm existingHours={workingHours} />
+        <WorkingHoursForm existingHours={workingHours} staffList={staffList} />
       </div>
     </div>
   );

@@ -51,6 +51,7 @@ export async function saveWorkingHours(formData: FormData) {
         for (let i = 0; i < shiftCount; i++) {
           const startTime = formData.get(`shift-${dayOfWeek}-${i}-start`) as string;
           const endTime = formData.get(`shift-${dayOfWeek}-${i}-end`) as string;
+          const staffId = formData.get(`shift-${dayOfWeek}-${i}-staff`) as string;
           
           if (startTime && endTime) {
             await db.shift.create({
@@ -58,6 +59,7 @@ export async function saveWorkingHours(formData: FormData) {
                 workingHourId: workingHour.id,
                 startTime,
                 endTime,
+                staffId: staffId || null, // Personel ataması opsiyonel
               }
             });
           }

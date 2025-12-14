@@ -55,13 +55,27 @@ export async function getAvailableSlots(
       },
       include: {
         shifts: {
+          include: {
+            staff: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          },
           orderBy: { startTime: "asc" }
         }
       }
     });
 
     if (workingHour) {
-      shifts = workingHour.shifts;
+      // Eğer personel seçildiyse, sadece o personelin vardiyalarını göster
+      if (staffId) {
+        shifts = workingHour.shifts.filter(s => s.staffId === staffId);
+      } else {
+        // Personel seçilmediyse, personel atanmamış vardiyaları göster
+        shifts = workingHour.shifts.filter(s => !s.staffId);
+      }
     }
 
     // İşletme geneli molalar

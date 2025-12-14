@@ -114,6 +114,9 @@ model Shift {
   workingHourId String
   workingHour   WorkingHour @relation(fields: [workingHourId], references: [id], onDelete: Cascade)
 
+  staffId String? // Vardiyaya atanan personel (opsiyonel)
+  staff   Staff?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 }
 
@@ -279,6 +282,9 @@ model Staff {
 
   // Randevular
   appointments Appointment[]
+
+  // Vardiyalara atanma
+  shifts Shift[]
 
   isActive Boolean @default(true)
 
