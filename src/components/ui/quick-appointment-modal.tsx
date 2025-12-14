@@ -1,9 +1,9 @@
 "use client";
 
 import { X, ChevronLeft, ChevronRight, Calendar, Clock, ArrowLeft, CheckCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createAppointment } from "@/actions/appointment";
-import { getStaffForService, getAvailableSlots, isDateAvailable } from "@/actions/availability";
+import { getStaffForService } from "@/actions/availability";
 
 interface Service {
   id: string;
@@ -102,7 +102,7 @@ export default function QuickAppointmentModal({
     }
   }, [selectedStaffId, fetchingStaff, step, availableStaff.length]);
 
-  // Modal açıldığında step'i sıfırla
+  // Modal açıldığında step'i sıfırla ve cache'i temizle
   useEffect(() => {
     if (isOpen) {
       setStep(1);
@@ -110,57 +110,107 @@ export default function QuickAppointmentModal({
       setSelectedStaffId("");
       setSelectedDate(null);
       setSelectedSlot(null);
+      setAvailableDates(new Set());
+      setAvailableSlots([]);
+      fetchDatesRef.current = null; // Cache'i temizle
     }
   }, [isOpen]);
 
-  // Modal açıldığında veya ay değiştiğinde tarihleri çek (Step 3)
+  // fetchDates fonksiyonunu memoize et ve debounce ekle
+  const fetchDatesRef = useRef<{ month: number; year: number; staffId: string } | null>(null);
+  const fetchDatesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchDates = useCallback(async () => {
+    // Eğer aynı ay/yıl/personel için zaten çekildiyse, tekrar çekme
+    if (fetchDatesRef.current && 
+        fetchDatesRef.current.month === currentMonth &&
+        fetchDatesRef.current.year === currentYear &&
+        fetchDatesRef.current.staffId === selectedStaffId &&
+        availableDates.size > 0) {
+      return; // Cache'den kullan
+    }
+
+    // Önceki timeout'u iptal et
+    if (fetchDatesTimeoutRef.current) {
+      clearTimeout(fetchDatesTimeoutRef.current);
+    }
+
+    // Debounce: 300ms bekle
+    fetchDatesTimeoutRef.current = setTimeout(async () => {
+      setFetchingDates(true);
+      try {
+        // Tek bir API çağrısı ile tüm ayın müsaitlik durumunu al
+        const url = `/api/barber/${barberId}/availability?month=${currentMonth}&year=${currentYear}${selectedStaffId ? `&staffId=${selectedStaffId}` : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        setAvailableDates(new Set(data.availableDates || []));
+        setUnavailableDates(new Set(data.unavailableDates || []));
+        fetchDatesRef.current = { month: currentMonth, year: currentYear, staffId: selectedStaffId };
+      } catch (error) {
+        console.error("Error fetching dates:", error);
+      } finally {
+        setFetchingDates(false);
+      }
+    }, 300);
+  }, [currentMonth, currentYear, selectedStaffId, barberId]);
+
+  // Modal açıldığında veya ay değiştiğinde tarihleri çek (Step 3) - sadece bir kez
   useEffect(() => {
     if (isOpen && step === 3 && selectedStaffId) {
-      fetchDates();
+      // Cache kontrolü: Eğer aynı ay/yıl/personel için zaten çekildiyse, tekrar çekme
+      const cacheKey = `${currentMonth}-${currentYear}-${selectedStaffId}`;
+      if (!fetchDatesRef.current || 
+          fetchDatesRef.current.month !== currentMonth ||
+          fetchDatesRef.current.year !== currentYear ||
+          fetchDatesRef.current.staffId !== selectedStaffId) {
+        fetchDates();
+      }
     }
-  }, [isOpen, currentMonth, currentYear, barberId, step, selectedStaffId]);
+  }, [isOpen, step, selectedStaffId, fetchDates]);
 
-
-  // Tarih seçildiğinde saatleri çek (Step 4)
+  // Tarih seçildiğinde saatleri çek (Step 4) - API endpoint kullanarak
+  const fetchSlotsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (step === 4 && selectedDate && selectedStaffId) {
-      setFetchingSlots(true);
-      getAvailableSlots(barberId, new Date(selectedDate), selectedStaffId)
-        .then(slots => {
+      // Önceki timeout'u iptal et
+      if (fetchSlotsTimeoutRef.current) {
+        clearTimeout(fetchSlotsTimeoutRef.current);
+      }
+
+      // Debounce: 200ms bekle
+      fetchSlotsTimeoutRef.current = setTimeout(async () => {
+        setFetchingSlots(true);
+        try {
+          // API endpoint kullanarak saatleri çek
+          const url = `/api/barber/${barberId}/availability?date=${selectedDate}${selectedStaffId ? `&staffId=${selectedStaffId}` : ''}`;
+          const response = await fetch(url);
+          const data = await response.json();
+          
+          // Saat string'lerini Date objelerine çevir
+          const slots = (data.availableHours || []).map((timeStr: string) => {
+            const [hours, minutes] = timeStr.split(":").map(Number);
+            const slotDate = new Date(selectedDate);
+            slotDate.setHours(hours, minutes, 0, 0);
+            return slotDate;
+          });
+          
           setAvailableSlots(slots);
           setSelectedSlot(null);
-        })
-        .finally(() => setFetchingSlots(false));
+        } catch (error) {
+          console.error("Error fetching slots:", error);
+        } finally {
+          setFetchingSlots(false);
+        }
+      }, 200);
     }
-  }, [step, selectedDate, selectedStaffId, barberId]);
 
-  const fetchDates = async () => {
-    setFetchingDates(true);
-    try {
-      const today = new Date();
-      const dates = new Set<string>();
-      
-      // 30 gün ileriye bak
-      await Promise.all(
-        Array.from({ length: 30 }).map(async (_, i) => {
-          const date = new Date(today);
-          date.setDate(today.getDate() + i);
-          const dateStr = date.toISOString().split('T')[0];
-          
-          const available = await isDateAvailable(barberId, date, selectedStaffId);
-          if (available) {
-            dates.add(dateStr);
-          }
-        })
-      );
-      
-      setAvailableDates(dates);
-    } catch (error) {
-      console.error("Error fetching dates:", error);
-    } finally {
-      setFetchingDates(false);
-    }
-  };
+    return () => {
+      if (fetchSlotsTimeoutRef.current) {
+        clearTimeout(fetchSlotsTimeoutRef.current);
+      }
+    };
+  }, [step, selectedDate, selectedStaffId, barberId]);
 
 
   const toggleService = (id: string) => {
@@ -435,10 +485,6 @@ export default function QuickAppointmentModal({
                   Geri Dön
                 </button>
               </div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Tarih Seçin
-            </h3>
 
             {/* Ay Navigasyonu */}
             <div className="flex items-center justify-between mb-4">

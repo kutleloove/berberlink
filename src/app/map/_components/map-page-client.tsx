@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Scissors, Search, MapPin, Navigation, X, Calendar, MessageSquare, Star } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import QuickAppointmentModal from "@/components/ui/quick-appointment-modal";
 import { toggleFavorite } from "@/actions/favorite";
 
@@ -41,6 +41,7 @@ interface Barber {
 }
 
 export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter }: { barbers: Barber[], favoriteBarbers?: Barber[], mapCenter: [number, number] }) {
+  const { isLoaded, user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
@@ -92,7 +93,7 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
               <span>BerberLink</span>
             </Link>
             <div className="flex items-center gap-2">
-              <UserButton afterSignOutUrl="/" />
+              {isLoaded && user && <UserButton afterSignOutUrl="/" />}
             </div>
           </div>
           

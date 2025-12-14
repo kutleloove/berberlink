@@ -4,7 +4,7 @@ import { getAvailableSlots, isDateAvailable, getStaffForService } from "@/action
 import { createAppointment } from "@/actions/appointment";
 import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 interface Service {
   id: string;
@@ -73,43 +73,89 @@ export function BookingWizard({ barberId, services }: BookingWizardProps) {
     }
   }, [step, selectedServices, barberId]);
 
-  // Önümüzdeki 30 günün müsaitlik durumunu kontrol et
+  // Önümüzdeki 30 günün müsaitlik durumunu kontrol et - tek API çağrısı ile
+  const datesCacheRef = useRef<{ staffId: string; dates: Set<string> } | null>(null);
+  const datesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (step === 3 && selectedStaffId) {
-      setCheckingDates(true);
-      const dates = new Set<string>();
-      const today = new Date();
-      
-      // 30 gün ileriye bak
-      Promise.all(
-        Array.from({ length: 30 }).map(async (_, i) => {
-          const date = new Date(today);
-          date.setDate(today.getDate() + i);
-          const dateStr = date.toISOString().split('T')[0];
-          
-          const available = await isDateAvailable(barberId, date, selectedStaffId);
-          if (available) {
-            dates.add(dateStr);
-          }
-        })
-      ).then(() => {
-        setAvailableDates(dates);
+      // Cache kontrolü
+      if (datesCacheRef.current && datesCacheRef.current.staffId === selectedStaffId && datesCacheRef.current.dates.size > 0) {
+        setAvailableDates(datesCacheRef.current.dates);
         setCheckingDates(false);
-      });
+        return;
+      }
+
+      // Önceki timeout'u iptal et
+      if (datesTimeoutRef.current) {
+        clearTimeout(datesTimeoutRef.current);
+      }
+
+      setCheckingDates(true);
+      
+      // Debounce: 300ms bekle
+      datesTimeoutRef.current = setTimeout(async () => {
+        try {
+          // Tek bir API çağrısı ile tüm ayın müsaitlik durumunu al
+          const today = new Date();
+          const month = today.getMonth();
+          const year = today.getFullYear();
+          const url = `/api/barber/${barberId}/availability?month=${month}&year=${year}&staffId=${selectedStaffId}`;
+          const response = await fetch(url);
+          const data = await response.json();
+          
+          // Sadece önümüzdeki 30 günü filtrele
+          const dates = new Set<string>();
+          const todayStr = today.toISOString().split('T')[0];
+          const futureDates = (data.availableDates || []).filter((dateStr: string) => {
+            return dateStr >= todayStr;
+          }).slice(0, 30);
+          
+          futureDates.forEach((dateStr: string) => dates.add(dateStr));
+          
+          setAvailableDates(dates);
+          datesCacheRef.current = { staffId: selectedStaffId, dates };
+        } catch (error) {
+          console.error("Error fetching dates:", error);
+        } finally {
+          setCheckingDates(false);
+        }
+      }, 300);
     }
+
+    return () => {
+      if (datesTimeoutRef.current) {
+        clearTimeout(datesTimeoutRef.current);
+      }
+    };
   }, [step, barberId, selectedStaffId]);
 
-  // Müsaitlikleri çek
+  // Müsaitlikleri çek - debounce ile
+  const slotsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (step === 4 && selectedDate && selectedStaffId) {
-      setFetchingSlots(true);
-      getAvailableSlots(barberId, new Date(selectedDate), selectedStaffId)
-        .then(slots => {
-          setAvailableSlots(slots);
-          setSelectedSlot(null); // Tarih değişince saati sıfırla
-        })
-        .finally(() => setFetchingSlots(false));
+      // Önceki timeout'u iptal et
+      if (slotsTimeoutRef.current) {
+        clearTimeout(slotsTimeoutRef.current);
+      }
+
+      // Debounce: 200ms bekle
+      slotsTimeoutRef.current = setTimeout(() => {
+        setFetchingSlots(true);
+        getAvailableSlots(barberId, new Date(selectedDate), selectedStaffId)
+          .then(slots => {
+            setAvailableSlots(slots);
+            setSelectedSlot(null); // Tarih değişince saati sıfırla
+          })
+          .finally(() => setFetchingSlots(false));
+      }, 200);
     }
+
+    return () => {
+      if (slotsTimeoutRef.current) {
+        clearTimeout(slotsTimeoutRef.current);
+      }
+    };
   }, [step, selectedDate, selectedStaffId, barberId]);
 
   // Randevuyu oluştur
