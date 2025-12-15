@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { currentUser } from "@clerk/nextjs/server";
 
 // Cache için revalidate süresi (saniye)
 export const revalidate = 60; // 1 dakika
@@ -138,17 +139,31 @@ export async function GET(
         appointmentWhere.staffId = null; // İşletme geneli
       }
 
+      // Kullanıcının kendi abonelik randevularını almak için
+      const user = await currentUser();
+      let currentUserId: string | null = null;
+      if (user) {
+        const dbUser = await db.user.findUnique({
+          where: { email: user.emailAddresses[0].emailAddress },
+          select: { id: true },
+        });
+        currentUserId = dbUser?.id || null;
+      }
+
       const appointments = await db.appointment.findMany({
         where: appointmentWhere,
         select: {
           startTime: true,
           endTime: true,
+          customerId: true,
+          subscriptionAppointmentId: true,
         },
       });
 
       // Müsait ve dolu saatleri hesapla
       const availableHours: string[] = [];
       const unavailableHours: string[] = [];
+      const mySubscriptionHours: string[] = []; // Kullanıcının kendi abonelik randevuları
       const interval = 30; // dakika
 
       for (const shift of shifts) {
@@ -172,7 +187,7 @@ export async function GET(
           const timeStr = `${currentSlot.getHours().toString().padStart(2, "0")}:${currentSlot.getMinutes().toString().padStart(2, "0")}`;
 
           // Randevu çakışma kontrolü
-          const isBusy = appointments.some((appt) => {
+          const busyAppointment = appointments.find((appt) => {
             return (
               (currentSlot >= appt.startTime && currentSlot < appt.endTime) ||
               (slotEndTime > appt.startTime && slotEndTime <= appt.endTime) ||
@@ -180,9 +195,21 @@ export async function GET(
             );
           });
 
-          if (isBusy) {
-            unavailableHours.push(timeStr);
+          if (busyAppointment) {
+            // Kullanıcının kendi abonelik randevusu mu kontrol et
+            if (
+              currentUserId &&
+              busyAppointment.customerId === currentUserId &&
+              busyAppointment.subscriptionAppointmentId
+            ) {
+              // Kullanıcının kendi abonelik randevusu - özel göster
+              mySubscriptionHours.push(timeStr);
+            } else {
+              // Başkasının randevusu veya kullanıcının normal randevusu - dolu
+              unavailableHours.push(timeStr);
+            }
           } else {
+            // Müsait saat
             availableHours.push(timeStr);
           }
 
@@ -193,6 +220,7 @@ export async function GET(
       return NextResponse.json({
         availableHours,
         unavailableHours,
+        mySubscriptionHours, // Kullanıcının kendi abonelik randevuları
       });
     }
 

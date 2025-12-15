@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BookingWizard } from "./_components/booking-wizard";
+import { Footer } from "@/components/ui/footer";
 
 interface BarberPageProps {
   params: Promise<{
@@ -96,6 +97,7 @@ export default async function BarberProfilePage({ params }: BarberPageProps) {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

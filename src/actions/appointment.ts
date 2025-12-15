@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { generateFutureSubscriptionAppointments } from "./appointments";
 
 export async function createAppointment(
   barberId: string,
@@ -24,6 +25,22 @@ export async function createAppointment(
   if (!dbUser) {
     // Fallback: syncUser çalışmadıysa
      return { error: "Kullanıcı bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin." };
+  }
+
+  // Abonelik randevusu kontrolü: Eğer aktif abonelik randevusu varsa ve aylık değilse, yeni randevu alamaz
+  const activeSubscription = await db.subscriptionAppointment.findFirst({
+    where: {
+      customerId: dbUser.id,
+      barberId,
+      isActive: true,
+      recurrenceType: { not: "MONTHLY" }, // Aylık hariç
+    },
+  });
+
+  if (activeSubscription) {
+    return { 
+      error: "Aktif bir abonelik randevunuz bulunmaktadır. Yeni randevu almak için önce mevcut aboneliğinizi iptal etmeniz veya güncellemeniz gerekmektedir." 
+    };
   }
 
   try {
@@ -89,8 +106,12 @@ export async function createAppointment(
       }
     });
 
+    // Abonelik randevularından gelecek randevuları oluştur
+    await generateFutureSubscriptionAppointments(barberId);
+
     revalidatePath("/appointments"); // Müşteri paneli
     revalidatePath(`/dashboard`);    // Berber paneli
+    revalidatePath(`/barber/customers`); // Yeni müşteri listesini güncelle
     
     return { success: true };
 

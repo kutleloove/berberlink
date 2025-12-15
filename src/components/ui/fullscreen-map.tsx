@@ -36,6 +36,7 @@ export default function FullScreenMap({
   onMarkerClick,
   onBookAppointment,
   darkMode = false,
+  userLocation,
 }: { 
   barbers: Barber[], 
   center: [number, number],
@@ -43,6 +44,7 @@ export default function FullScreenMap({
   onMarkerClick?: (barber: Barber) => void,
   onBookAppointment?: (barber: Barber) => void,
   darkMode?: boolean,
+  userLocation?: [number, number],
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(12);
@@ -343,12 +345,32 @@ export default function FullScreenMap({
       minZoom={2}
       maxZoom={19}
     >
+      {/* Kullanıcının konumu */}
+      {userLocation && (
+        <Marker
+          longitude={userLocation[1]}
+          latitude={userLocation[0]}
+          anchor="center"
+        >
+          <div
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: "9999px",
+              background: "#2563eb",
+              border: "3px solid white",
+              boxShadow: "0 0 0 4px rgba(37, 99, 235, 0.4)",
+            }}
+          />
+        </Marker>
+      )}
+
       {barbers.map((barber) => {
         if (!barber.latitude || !barber.longitude) return null;
 
         // Eğer bu marker'ın popup'ı açıksa, marker'ı gizle
         if (selectedBarber && selectedBarber.id === barber.id) return null;
-
+        
         const isSelected = selectedBarberId === barber.id;
         const isFavorite = barber.isFavorite || false;
 
@@ -439,7 +461,7 @@ export default function FullScreenMap({
                         }}
                       />
                     )}
-                  </span>
+            </span>
                   <span
                     style={{
                       whiteSpace: "nowrap",
@@ -449,8 +471,8 @@ export default function FullScreenMap({
                     }}
                   >
                     {barber.shopName || "Berber"}
-                  </span>
-                </div>
+            </span>
+          </div>
                 {/* Ok işareti (üçgen) - altında konuma işaret etmeli */}
                 <div
                   style={{
@@ -473,8 +495,8 @@ export default function FullScreenMap({
 
         // Pin marker (uzak zoom)
         return (
-          <Marker
-            key={barber.id}
+          <Marker 
+            key={barber.id} 
             longitude={barber.longitude}
             latitude={barber.latitude}
             anchor="bottom"
@@ -582,7 +604,7 @@ export default function FullScreenMap({
                   pointerEvents: "none",
                 }}
               />
-            </div>
+              </div>
           </Marker>
         );
       })}

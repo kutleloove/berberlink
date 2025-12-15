@@ -16,7 +16,9 @@ import {
   Settings,
   ChevronRight,
   Menu,
-  X
+  X,
+  User,
+  Repeat
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Profile } from "@prisma/client";
@@ -76,6 +78,11 @@ export function BarberSidebar({ profile }: BarberSidebarProps) {
           href: "/barber/appointments/past",
           icon: <CalendarClock size={16} />,
         },
+        {
+          title: "Abone Randevuları",
+          href: "/barber/appointments/subscriptions",
+          icon: <Repeat size={16} />,
+        },
       ],
     },
     {
@@ -123,6 +130,11 @@ export function BarberSidebar({ profile }: BarberSidebarProps) {
       title: "Ayarlar",
       icon: <Settings size={20} />,
       href: "/barber/settings",
+    },
+    {
+      title: "Müşteri Paneli",
+      icon: <User size={20} />,
+      href: "/customer",
     },
   ];
 

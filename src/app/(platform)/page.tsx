@@ -3,6 +3,7 @@ import { ArrowRight, Scissors, Calendar, Store, ShieldCheck, MapPin, Search } fr
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import MiniMap from "@/components/ui/mini-map";
+import { Footer } from "@/components/ui/footer";
 
 export default async function LandingPage() {
   const user = await currentUser();
@@ -179,6 +180,7 @@ export default async function LandingPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
@@ -307,17 +309,7 @@ function MarketingLanding() {
         </section>
       </main>
 
-      <footer className="py-12 bg-white border-t border-slate-100">
-        <div className="container mx-auto px-4 text-center text-slate-500">
-          <div className="flex items-center justify-center gap-2 mb-4 font-bold text-slate-900">
-            <Scissors size={20} />
-            <span>BerberLink</span>
-          </div>
-          <p className="text-sm">
-            &copy; {new Date().getFullYear()} BerberLink. Tüm hakları saklıdır.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

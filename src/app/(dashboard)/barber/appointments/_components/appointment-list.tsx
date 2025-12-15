@@ -1,9 +1,9 @@
 "use client";
 
 import { Appointment, Staff } from "@prisma/client";
-import { Calendar, User, Scissors, Edit, X, Clock, AlertCircle } from "lucide-react";
+import { Calendar, User, Scissors, Edit, X, Clock, AlertCircle, Repeat } from "lucide-react";
 import { useState } from "react";
-import { reassignAppointment, cancelAppointment } from "@/actions/appointments";
+import { reassignAppointment, cancelAppointment, changeAppointmentStaff } from "@/actions/appointments";
 import { AppointmentReassignModal } from "./appointment-reassign-modal";
 
 interface AppointmentListProps {
@@ -30,6 +30,10 @@ interface AppointmentListProps {
       reason: string | null;
       isApproved: boolean;
       isRejected: boolean;
+    } | null;
+    subscriptionAppointment: {
+      id: string;
+      recurrenceType: string;
     } | null;
   })[];
   staffList: Staff[];
@@ -105,6 +109,12 @@ export function AppointmentList({ appointments, staffList }: AppointmentListProp
                     <div className="flex items-center gap-2 text-slate-600">
                       <User size={18} />
                       <span className="text-sm">{appointment.staff.name}</span>
+                    </div>
+                  )}
+                  {appointment.subscriptionAppointment && (
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Repeat size={18} />
+                      <span className="text-sm font-medium">Abone Randevusu</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-slate-600">

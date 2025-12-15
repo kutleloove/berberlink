@@ -36,6 +36,12 @@ enum PaymentMethod {
   CREDIT_CARD
 }
 
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String?
@@ -46,12 +52,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  profile                Profile?
-  appointmentsAsCustomer Appointment[] @relation("CustomerAppointments")
-  sentMessages           Message[]     @relation("SentMessages")
-  receivedMessages       Message[]     @relation("ReceivedMessages")
-  blacklistedBy          Blacklist[]
-  favorites              Favorite[]
+  profile                 Profile?
+  appointmentsAsCustomer  Appointment[]             @relation("CustomerAppointments")
+  sentMessages            Message[]                 @relation("SentMessages")
+  receivedMessages        Message[]                 @relation("ReceivedMessages")
+  blacklistedBy           Blacklist[]
+  favorites               Favorite[]
+  subscriptionAppointments SubscriptionAppointment[]
 }
 
 model Profile {
@@ -72,19 +79,25 @@ model Profile {
   appointmentLimitPerCustomer Int       @default(1)
   averageRating               Float?    // Ortalama puan (1-5)
 
+  // Subscription appointment settings
+  allowSubscriptionAppointments Boolean @default(false)
+  allowedRecurrenceTypes        Json?   // ["DAILY", "WEEKLY", "MONTHLY"]
+  allowTimeChanges              Boolean @default(true) // Allow time changes
+
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  services      Service[]
-  appointments  Appointment[]
-  blacklist     Blacklist[]
-  workingHours  WorkingHour[]
-  breaks        Break[]
-  holidays      Holiday[]
-  subscriptions SubscriptionHistory[]
-  staff         Staff[] // Personeller
-  staffRoles    StaffRole[] // Personel rolleri
-  favoritedBy   Favorite[]
+  services                Service[]
+  appointments            Appointment[]
+  blacklist               Blacklist[]
+  workingHours            WorkingHour[]
+  breaks                  Break[]
+  holidays                Holiday[]
+  subscriptions           SubscriptionHistory[]
+  staff                   Staff[] // Personeller
+  staffRoles              StaffRole[] // Personel rolleri
+  favoritedBy             Favorite[]
+  subscriptionAppointments SubscriptionAppointment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -163,8 +176,9 @@ model Service {
   profileId String
   profile   Profile @relation(fields: [profileId], references: [id])
 
-  appointments     Appointment[]
-  staffAssignments StaffServiceAssignment[]
+  appointments            Appointment[]
+  staffAssignments        StaffServiceAssignment[]
+  subscriptionAppointments SubscriptionAppointment[]
 }
 
 model Appointment {
@@ -184,6 +198,9 @@ model Appointment {
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
   services Service[]
+
+  subscriptionAppointmentId String?
+  subscriptionAppointment   SubscriptionAppointment? @relation(fields: [subscriptionAppointmentId], references: [id], onDelete: SetNull)
 
   // Randevu degisiklik onayi icin
   pendingChangeId String?            @unique
@@ -283,6 +300,9 @@ model Staff {
   // Randevular
   appointments Appointment[]
 
+  // Subscription appointments
+  subscriptionAppointments SubscriptionAppointment[]
+
   // Vardiyalara atanma
   shifts Shift[]
 
@@ -355,4 +375,54 @@ model Favorite {
   createdAt DateTime @default(now())
 
   @@unique([customerId, barberId])
+}
+
+model SubscriptionAppointment {
+  id             String         @id @default(cuid())
+  recurrenceType RecurrenceType // DAILY, WEEKLY, MONTHLY
+  startDate      DateTime       // First appointment date
+  endDate        DateTime?      // End date (null if unlimited)
+  time           String         // Time in "16:00" format
+  dayOfWeek      Int?           // For weekly: 0=Sunday, 1=Monday, ..., 6=Saturday
+  dayOfMonth     Int?           // For monthly: day 1-31
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  barberId String
+  barber   Profile @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  staffId String? // Staff assignment (optional)
+  staff   Staff?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  services Service[]
+
+  // Exceptions (cancelled or rescheduled appointments)
+  exceptions SubscriptionAppointmentException[]
+
+  // Generated appointments
+  generatedAppointments Appointment[]
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId, barberId, recurrenceType])
+}
+
+model SubscriptionAppointmentException {
+  id String @id @default(cuid())
+
+  subscriptionAppointmentId String
+  subscriptionAppointment   SubscriptionAppointment @relation(fields: [subscriptionAppointmentId], references: [id], onDelete: Cascade)
+
+  originalDate  DateTime // Original appointment date
+  exceptionType String   // "CANCELLED" or "RESCHEDULED"
+  newDate       DateTime? // New date if RESCHEDULED
+  newTime       String?   // New time if RESCHEDULED
+
+  createdAt DateTime @default(now())
+
+  @@unique([subscriptionAppointmentId, originalDate])
 }

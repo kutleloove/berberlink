@@ -45,6 +45,7 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [favoriteStatus, setFavoriteStatus] = useState<Record<string, boolean>>(() => {
     const status: Record<string, boolean> = {};
     barbers.forEach(barber => {
@@ -78,6 +79,29 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
       (b.address && b.address.toLowerCase().includes(query))
     );
   }, [barbers, favoriteBarbers, searchQuery]);
+
+  // Hiç berber yokken, kullanıcının konumunu iste ve haritayı yakınında aç
+  useEffect(() => {
+    if (barbers.length === 0 && favoriteBarbers.length === 0 && typeof window !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        },
+        () => {
+          // Kullanıcı reddederse veya hata olursa, İstanbul (mapCenter) kullanılmaya devam edilir
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        }
+      );
+    }
+  }, [barbers.length, favoriteBarbers.length]);
+
+  const effectiveCenter: [number, number] =
+    selectedBarber && selectedBarber.latitude && selectedBarber.longitude
+      ? [selectedBarber.latitude, selectedBarber.longitude]
+      : userLocation || mapCenter;
 
   return (
     <div className="flex h-screen w-full overflow-hidden relative">
@@ -334,10 +358,8 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
 
         <FullScreenMap 
           barbers={filteredBarbers} 
-          center={selectedBarber && selectedBarber.latitude && selectedBarber.longitude
-            ? [selectedBarber.latitude, selectedBarber.longitude]
-            : mapCenter
-          }
+          center={effectiveCenter}
+          userLocation={userLocation || undefined}
           selectedBarberId={selectedBarber?.id}
           onMarkerClick={(barber) => {
             if (!barber) {

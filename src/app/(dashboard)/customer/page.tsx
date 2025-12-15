@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { SubscriptionAppointments } from "./_components/subscription-appointments";
 
 export default async function CustomerPage() {
   const user = await currentUser();
@@ -31,6 +32,8 @@ export default async function CustomerPage() {
       </div>
 
       <div className="grid gap-6">
+        <SubscriptionAppointments />
+        
         <h2 className="text-xl font-bold text-slate-900">Randevularım</h2>
         
         {dbUser.appointmentsAsCustomer.length === 0 ? (
@@ -91,6 +94,18 @@ export default async function CustomerPage() {
         )}
       </div>
 
+      {dbUser.role === "BARBER" && dbUser.profile && (
+        <div className="mt-12 p-6 bg-slate-900 text-white rounded-2xl flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold mb-1">Berber Paneline Geç</h3>
+            <p className="text-slate-300">İşletmenizi yönetmek için berber paneline gidin.</p>
+          </div>
+          <a href="/barber" className="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold hover:bg-slate-100 transition">
+            Berber Paneli
+          </a>
+        </div>
+      )}
+      
       {dbUser.role !== "BARBER" && (
         <div className="mt-12 p-6 bg-slate-900 text-white rounded-2xl flex items-center justify-between">
           <div>

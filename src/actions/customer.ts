@@ -15,7 +15,7 @@ export async function getCustomers(profileId: string) {
   });
 
   const customerIds = appointments.map(a => a.customerId);
-  
+
   const customers = await db.user.findMany({
     where: {
       id: { in: customerIds },
