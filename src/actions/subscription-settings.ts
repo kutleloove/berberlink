@@ -1,15 +1,15 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 export async function saveSubscriptionSettings(formData: FormData) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -18,7 +18,7 @@ export async function saveSubscriptionSettings(formData: FormData) {
   try {
     const allowSubscriptionAppointments = formData.get("allowSubscriptionAppointments") === "on";
     const allowTimeChanges = formData.get("allowTimeChanges") === "on";
-    
+
     // İzin verilen tekrar türlerini topla
     const allowedRecurrenceTypes: string[] = [];
     if (formData.get("recurrenceType-DAILY") === "on") {
@@ -35,7 +35,7 @@ export async function saveSubscriptionSettings(formData: FormData) {
       where: { id: dbUser.profile.id },
       data: {
         allowSubscriptionAppointments,
-        allowedRecurrenceTypes: allowSubscriptionAppointments ? allowedRecurrenceTypes : null,
+        allowedRecurrenceTypes: allowSubscriptionAppointments ? (allowedRecurrenceTypes as any) : undefined,
         allowTimeChanges: allowSubscriptionAppointments ? allowTimeChanges : true,
       }
     });

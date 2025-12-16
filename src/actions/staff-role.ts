@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 export async function getStaffRoles(profileId: string) {
@@ -12,11 +12,11 @@ export async function getStaffRoles(profileId: string) {
 }
 
 export async function createStaffRole(formData: FormData) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -55,11 +55,11 @@ export async function createStaffRole(formData: FormData) {
 }
 
 export async function updateStaffRole(roleId: string, formData: FormData) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -98,11 +98,11 @@ export async function updateStaffRole(roleId: string, formData: FormData) {
 }
 
 export async function deleteStaffRole(roleId: string) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 

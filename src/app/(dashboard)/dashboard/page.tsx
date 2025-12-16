@@ -1,15 +1,15 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Scissors, User, Calendar, Settings, Users, Briefcase } from "lucide-react";
 
 export default async function DashboardPage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: {
       profile: true,
       appointmentsAsCustomer: {
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Berber Paneli</h2>
-                <p className="text-sm text-slate-500">{dbUser.profile.shopName}</p>
+                <p className="text-sm text-slate-500">{dbUser.profile?.shopName}</p>
               </div>
             </div>
             <p className="text-slate-600 text-sm mb-4">
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
           </Link>
         ) : (
           <Link
-            href="/onboarding"
+            href="/pricing"
             className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all group"
           >
             <div className="flex items-center gap-4 mb-4">

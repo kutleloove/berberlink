@@ -1,15 +1,15 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 export async function saveWorkingHours(formData: FormData) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -19,7 +19,7 @@ export async function saveWorkingHours(formData: FormData) {
     // Her gün için çalışma saatlerini kaydet
     for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
       const isClosed = formData.get(`closed-${dayOfWeek}`) === "on";
-      
+
       // WorkingHour'ı oluştur/güncelle
       const workingHour = await db.workingHour.upsert({
         where: {
@@ -47,12 +47,12 @@ export async function saveWorkingHours(formData: FormData) {
 
         // Yeni vardiyaları ekle
         const shiftCount = parseInt(formData.get(`shiftCount-${dayOfWeek}`) as string) || 1;
-        
+
         for (let i = 0; i < shiftCount; i++) {
           const startTime = formData.get(`shift-${dayOfWeek}-${i}-start`) as string;
           const endTime = formData.get(`shift-${dayOfWeek}-${i}-end`) as string;
           const staffId = formData.get(`shift-${dayOfWeek}-${i}-staff`) as string;
-          
+
           if (startTime && endTime) {
             await db.shift.create({
               data: {

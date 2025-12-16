@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { generateFutureSubscriptionAppointments } from "./appointments";
 
@@ -11,20 +11,10 @@ export async function createAppointment(
   date: Date,
   staffId?: string // Personel ID (opsiyonel)
 ) {
-  const user = await currentUser();
+  const dbUser = await getCurrentUser();
 
-  if (!user) {
-    return { error: "Randevu almak için giriş yapmalısınız." };
-  }
-
-  // Kullanıcıyı bul
-  const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
-  });
-  
   if (!dbUser) {
-    // Fallback: syncUser çalışmadıysa
-     return { error: "Kullanıcı bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin." };
+    return { error: "Randevu almak için giriş yapmalısınız." };
   }
 
   // Abonelik randevusu kontrolü: Eğer aktif abonelik randevusu varsa ve aylık değilse, yeni randevu alamaz
@@ -38,8 +28,8 @@ export async function createAppointment(
   });
 
   if (activeSubscription) {
-    return { 
-      error: "Aktif bir abonelik randevunuz bulunmaktadır. Yeni randevu almak için önce mevcut aboneliğinizi iptal etmeniz veya güncellemeniz gerekmektedir." 
+    return {
+      error: "Aktif bir abonelik randevunuz bulunmaktadır. Yeni randevu almak için önce mevcut aboneliğinizi iptal etmeniz veya güncellemeniz gerekmektedir."
     };
   }
 
@@ -52,7 +42,7 @@ export async function createAppointment(
     });
 
     const totalDuration = services.reduce((acc, s) => acc + s.duration, 0);
-    
+
     // Bitiş saatini hesapla
     const endTime = new Date(date.getTime() + totalDuration * 60000);
 
@@ -85,9 +75,10 @@ export async function createAppointment(
     });
 
     if (conflict) {
-      return { error: staffId 
-        ? "Seçilen personel için bu saatte başka bir randevu mevcut." 
-        : "Seçilen saatte başka bir randevu mevcut." 
+      return {
+        error: staffId
+          ? "Seçilen personel için bu saatte başka bir randevu mevcut."
+          : "Seçilen saatte başka bir randevu mevcut."
       };
     }
 
@@ -112,7 +103,7 @@ export async function createAppointment(
     revalidatePath("/appointments"); // Müşteri paneli
     revalidatePath(`/dashboard`);    // Berber paneli
     revalidatePath(`/barber/customers`); // Yeni müşteri listesini güncelle
-    
+
     return { success: true };
 
   } catch (error) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 
 // Cache için revalidate süresi (saniye)
 export const revalidate = 60; // 1 dakika
@@ -28,7 +28,7 @@ export async function GET(
       // Çalışma saatlerini getir - Personel bazlı veya işletme geneli
       let workingHour: any = null;
       let shifts: any[] = [];
-      
+
       // Eğer personel seçildiyse, önce personelin çalışma saatlerini kontrol et
       if (staffId) {
         const staffWorkingHour = await db.staffWorkingHour.findUnique({
@@ -83,7 +83,7 @@ export async function GET(
             // Personel seçilmediyse, personel atanmamış vardiyaları göster
             shifts = barberWorkingHour.shifts.filter(s => !s.staffId);
           }
-          
+
           if (shifts.length > 0) {
             workingHour = {
               ...barberWorkingHour,
@@ -140,14 +140,10 @@ export async function GET(
       }
 
       // Kullanıcının kendi abonelik randevularını almak için
-      const user = await currentUser();
+      const session = await getSession();
       let currentUserId: string | null = null;
-      if (user) {
-        const dbUser = await db.user.findUnique({
-          where: { email: user.emailAddresses[0].emailAddress },
-          select: { id: true },
-        });
-        currentUserId = dbUser?.id || null;
+      if (session?.userId) {
+        currentUserId = session.userId as string;
       }
 
       const appointments = await db.appointment.findMany({
@@ -295,7 +291,7 @@ export async function GET(
 
       // Çalışma saati kontrolü - Personel bazlı veya işletme geneli (cache'den)
       let workingHour: any = null;
-      
+
       // Eğer personel seçildiyse, önce personelin çalışma saatlerini kontrol et
       if (staffId && staffWorkingHoursByDay[dayOfWeek]) {
         const staffWorkingHour = staffWorkingHoursByDay[dayOfWeek];
@@ -307,7 +303,7 @@ export async function GET(
       // Eğer personel çalışma saati yoksa veya personel seçilmediyse, işletme genelini kontrol et
       if (!workingHour && workingHoursByDay[dayOfWeek]) {
         const barberWorkingHour = workingHoursByDay[dayOfWeek];
-        
+
         // Eğer personel seçildiyse, sadece o personelin vardiyalarını göster
         if (staffId) {
           const filteredShifts = barberWorkingHour.shifts.filter((s: any) => s.staffId === staffId);

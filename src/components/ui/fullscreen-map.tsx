@@ -26,19 +26,20 @@ interface Barber {
   logoUrl?: string | null;
   averageRating: number | null;
   isFavorite?: boolean;
+  isActive?: boolean;
   services?: Service[];
 }
 
-export default function FullScreenMap({ 
-  barbers, 
-  center, 
+export default function FullScreenMap({
+  barbers,
+  center,
   selectedBarberId,
   onMarkerClick,
   onBookAppointment,
   darkMode = false,
   userLocation,
-}: { 
-  barbers: Barber[], 
+}: {
+  barbers: Barber[],
   center: [number, number],
   selectedBarberId?: string,
   onMarkerClick?: (barber: Barber) => void,
@@ -71,12 +72,12 @@ export default function FullScreenMap({
     if (selectedBarber) {
       return;
     }
-    
+
     // Center prop'u gerçekten değişti mi kontrol et
-    const centerChanged = 
-      Math.abs(prevCenterRef.current[1] - center[1]) > 0.0001 || 
+    const centerChanged =
+      Math.abs(prevCenterRef.current[1] - center[1]) > 0.0001 ||
       Math.abs(prevCenterRef.current[0] - center[0]) > 0.0001;
-    
+
     if (centerChanged) {
       // Center prop'u değişti, viewState'i güncelle
       prevCenterRef.current = center;
@@ -120,22 +121,22 @@ export default function FullScreenMap({
         const popupHeight = popupElement ? popupElement.offsetHeight : 350;
         const padding = 20; // Ekran kenarlarından boşluk
         const markerHeight = 40; // Marker yüksekliği
-        
+
         // Marker'ın mevcut ekrandaki piksel konumunu hesapla
         const markerPoint = map.project([selectedBarber.longitude!, selectedBarber.latitude!]);
         const mapContainer = map.getContainer();
         const mapWidth = mapContainer.clientWidth;
         const mapHeight = mapContainer.clientHeight;
-        
+
         // Offset hesapla: popup'ın ekranın dışına taşmaması için
         let offsetX = 0;
         let offsetY = 0;
-        
+
         // X ekseni: Popup'ın sağ/sol kenarlardan taşmaması için
         // Popup anchor="bottom" olduğu için marker'ın tam üstünde ortalanmış olacak
         const popupLeftX = markerPoint.x - popupWidth / 2;
         const popupRightX = markerPoint.x + popupWidth / 2;
-        
+
         if (popupRightX + padding > mapWidth) {
           // Sağ kenardan taşıyorsa, sola kaydır
           offsetX = -(popupRightX + padding - mapWidth);
@@ -143,12 +144,12 @@ export default function FullScreenMap({
           // Sol kenardan taşıyorsa, sağa kaydır
           offsetX = padding - popupLeftX;
         }
-        
+
         // Y ekseni: Popup marker'ın üstünde görünecek (anchor="bottom")
         // Popup'ın tamamen görünür olması için marker'ın yukarısına popup yüksekliği + padding ekle
         const popupTopY = markerPoint.y - popupHeight - padding;
         const popupBottomY = markerPoint.y; // Marker'ın konumu popup'ın alt kenarı
-        
+
         if (popupTopY < 0) {
           // Üst kenardan taşıyorsa, aşağı kaydır (popup'ı ekran içinde tut)
           offsetY = -popupTopY + padding;
@@ -160,7 +161,7 @@ export default function FullScreenMap({
           // Marker'ın üstünde popup için biraz aşağı kaydır (popup'ın tam görünmesi için)
           offsetY = -(popupHeight / 2 + markerHeight / 2 + padding);
         }
-        
+
         const timeoutId = setTimeout(() => {
           map.flyTo({
             center: [selectedBarber.longitude!, selectedBarber.latitude!],
@@ -169,7 +170,7 @@ export default function FullScreenMap({
             essential: true,
           });
         }, 150); // Popup'ın render edilmesi için biraz daha fazla bekle
-        
+
         return () => clearTimeout(timeoutId);
       }
     }
@@ -264,60 +265,60 @@ export default function FullScreenMap({
           ],
         };
       }
-      
+
       // TileServer GL (OpenMapTiles formatı) - Şimdilik kullanılmıyor
       // if (process.env.NEXT_PUBLIC_TILESERVER_URL) {
       //   return `${process.env.NEXT_PUBLIC_TILESERVER_URL}/styles/basic-preview/style.json`;
       // }
-      
+
       // Raster tiles (OpenStreetMap veya CartoDB)
       return darkMode
-          ? {
-              version: 8,
-              sources: {
-                "osm-tiles": {
-                  type: "raster",
-                  tiles: [
-                    "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-                    "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-                    "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-                  ],
-                  tileSize: 256,
-                },
-              },
-              layers: [
-                {
-                  id: "osm-tiles-layer",
-                  type: "raster",
-                  source: "osm-tiles",
-                  minzoom: 0,
-                  maxzoom: 19,
-                },
+        ? {
+          version: 8,
+          sources: {
+            "osm-tiles": {
+              type: "raster",
+              tiles: [
+                "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+                "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+                "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
               ],
-            }
-          : {
-              version: 8,
-              sources: {
-                "osm-tiles": {
-                  type: "raster",
-                  tiles: [
-                    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                  ],
-                  tileSize: 256,
-                },
-              },
-              layers: [
-                {
-                  id: "osm-tiles-layer",
-                  type: "raster",
-                  source: "osm-tiles",
-                  minzoom: 0,
-                  maxzoom: 19,
-                },
+              tileSize: 256,
+            },
+          },
+          layers: [
+            {
+              id: "osm-tiles-layer",
+              type: "raster",
+              source: "osm-tiles",
+              minzoom: 0,
+              maxzoom: 19,
+            },
+          ],
+        }
+        : {
+          version: 8,
+          sources: {
+            "osm-tiles": {
+              type: "raster",
+              tiles: [
+                "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
               ],
-            };
+              tileSize: 256,
+            },
+          },
+          layers: [
+            {
+              id: "osm-tiles-layer",
+              type: "raster",
+              source: "osm-tiles",
+              minzoom: 0,
+              maxzoom: 19,
+            },
+          ],
+        };
     }
     return undefined;
   }, [darkMode]);
@@ -340,8 +341,8 @@ export default function FullScreenMap({
       }}
       onMoveEnd={handleMoveEnd}
       style={{ width: "100%", height: "100%" }}
-      mapStyle={mapStyle}
-      attributionControl={true}
+      mapStyle={mapStyle as any}
+      // attributionControl={true} // Removed as true is not allowed, default is enabled usually or use object
       minZoom={2}
       maxZoom={19}
     >
@@ -370,7 +371,7 @@ export default function FullScreenMap({
 
         // Eğer bu marker'ın popup'ı açıksa, marker'ı gizle
         if (selectedBarber && selectedBarber.id === barber.id) return null;
-        
+
         const isSelected = selectedBarberId === barber.id;
         const isFavorite = barber.isFavorite || false;
 
@@ -397,15 +398,15 @@ export default function FullScreenMap({
                     alignItems: "center",
                     gap: isFavorite ? "8px" : "6px",
                     padding: isFavorite ? "8px 14px" : "6px 10px",
-                    background: isFavorite 
+                    background: isFavorite
                       ? (isSelected ? "#fbbf24" : "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)")
                       : (isSelected ? "#111827" : "white"),
                     color: isFavorite ? "#ffffff" : (isSelected ? "white" : "#111827"),
-                    border: isFavorite 
+                    border: isFavorite
                       ? `2px solid ${isSelected ? "#f59e0b" : "#fbbf24"}`
                       : `2px solid ${isSelected ? "#2563eb" : "#e5e7eb"}`,
                     borderRadius: "9999px",
-                    boxShadow: isFavorite 
+                    boxShadow: isFavorite
                       ? "0 4px 16px rgba(251, 191, 36, 0.4), 0 2px 8px rgba(0,0,0,0.2)"
                       : "0 4px 12px rgba(0,0,0,0.2)",
                     fontFamily: "Inter, system-ui, -apple-system, sans-serif",
@@ -419,10 +420,10 @@ export default function FullScreenMap({
                       width: isFavorite ? "40px" : "32px",
                       height: isFavorite ? "40px" : "32px",
                       borderRadius: "9999px",
-                      background: isFavorite 
+                      background: isFavorite
                         ? "#ffffff"
                         : (isSelected ? "#2563eb" : "#e5e7eb"),
-                      color: isFavorite 
+                      color: isFavorite
                         ? "#f59e0b"
                         : (isSelected ? "white" : "#111827"),
                       display: "inline-flex",
@@ -461,7 +462,7 @@ export default function FullScreenMap({
                         }}
                       />
                     )}
-            </span>
+                  </span>
                   <span
                     style={{
                       whiteSpace: "nowrap",
@@ -471,8 +472,8 @@ export default function FullScreenMap({
                     }}
                   >
                     {barber.shopName || "Berber"}
-            </span>
-          </div>
+                  </span>
+                </div>
                 {/* Ok işareti (üçgen) - altında konuma işaret etmeli */}
                 <div
                   style={{
@@ -495,8 +496,8 @@ export default function FullScreenMap({
 
         // Pin marker (uzak zoom)
         return (
-          <Marker 
-            key={barber.id} 
+          <Marker
+            key={barber.id}
             longitude={barber.longitude}
             latitude={barber.latitude}
             anchor="bottom"
@@ -604,7 +605,7 @@ export default function FullScreenMap({
                   pointerEvents: "none",
                 }}
               />
-              </div>
+            </div>
           </Marker>
         );
       })}
@@ -631,8 +632,8 @@ export default function FullScreenMap({
             onClick={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
           >
-            <BarberPopup 
-              barber={selectedBarber} 
+            <BarberPopup
+              barber={selectedBarber}
               onBookAppointment={handleBookAppointment}
               isFavorite={selectedBarber.isFavorite}
             />

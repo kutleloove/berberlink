@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 export async function createService(formData: FormData) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const name = formData.get("name") as string;
   const duration = Number(formData.get("duration"));
@@ -15,7 +15,7 @@ export async function createService(formData: FormData) {
   if (!name || !duration || !price) return { error: "Eksik bilgi." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -41,8 +41,8 @@ export async function createService(formData: FormData) {
 }
 
 export async function deleteService(serviceId: string) {
-  const { userId } = await auth();
-  if (!userId) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   try {
     // Sahiplik kontrolü yapılmalı (Prisma sorgusu ile kullanıcının profiline ait mi diye bakılabilir)

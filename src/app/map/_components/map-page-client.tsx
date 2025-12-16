@@ -4,11 +4,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Scissors, Search, MapPin, Navigation, X, Calendar, MessageSquare, Star } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { UserButton } from "@/components/auth/user-button";
 import QuickAppointmentModal from "@/components/ui/quick-appointment-modal";
 import { toggleFavorite } from "@/actions/favorite";
 
-const FullScreenMap = dynamic(() => import("@/components/ui/fullscreen-map"), { 
+const FullScreenMap = dynamic(() => import("@/components/ui/fullscreen-map"), {
   ssr: false,
   loading: () => <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-500">Harita Yükleniyor...</div>
 });
@@ -27,7 +27,7 @@ interface Barber {
   latitude: number | null;
   longitude: number | null;
   address: string | null;
-  isActive: boolean;
+  isActive?: boolean;
   averageRating: number | null;
   logoUrl?: string | null;
   isFavorite?: boolean;
@@ -40,8 +40,9 @@ interface Barber {
   }[];
 }
 
-export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter }: { barbers: Barber[], favoriteBarbers?: Barber[], mapCenter: [number, number] }) {
-  const { isLoaded, user } = useUser();
+export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter, isAuthenticated }: { barbers: Barber[], favoriteBarbers?: Barber[], mapCenter: [number, number], isAuthenticated: boolean }) {
+  // const { isLoaded, user } = useUser(); // Removed Clerk hook
+  const user = isAuthenticated ? { id: "current" } : null; // Mock user existence for logic if needed, or rely on isAuthenticated
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
@@ -72,9 +73,9 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
       // Arama yapılmamışken favori berberleri göster
       return favoriteBarbers.length > 0 ? favoriteBarbers : barbers;
     }
-    
+
     const query = searchQuery.toLowerCase();
-    return barbers.filter(b => 
+    return barbers.filter(b =>
       b.shopName.toLowerCase().includes(query) ||
       (b.address && b.address.toLowerCase().includes(query))
     );
@@ -106,9 +107,8 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
   return (
     <div className="flex h-screen w-full overflow-hidden relative">
       {/* Sol Sidebar - Arama ve Liste */}
-      <div className={`w-full md:w-96 bg-white border-r border-slate-200 flex flex-col overflow-hidden transition-transform ${
-        selectedBarber ? "translate-x-0" : "translate-x-0"
-      }`}>
+      <div className={`w-full md:w-96 bg-white border-r border-slate-200 flex flex-col overflow-hidden transition-transform ${selectedBarber ? "translate-x-0" : "translate-x-0"
+        }`}>
         {/* Header */}
         <div className="p-4 border-b border-slate-200 bg-white sticky top-0 z-10">
           <div className="flex items-center justify-between mb-4">
@@ -117,10 +117,10 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
               <span>BerberLink</span>
             </Link>
             <div className="flex items-center gap-2">
-              {isLoaded && user && <UserButton afterSignOutUrl="/" />}
+              {isAuthenticated && <UserButton />}
             </div>
           </div>
-          
+
           {/* Arama Kutusu */}
           <div className="relative">
             <Search className="absolute left-3 top-3 text-slate-400" size={18} />
@@ -164,15 +164,14 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
                           }));
                         }
                       }}
-                      className={`p-2.5 rounded-xl transition-all duration-200 ${
-                        favoriteStatus[selectedBarber.id]
-                          ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
-                          : "bg-slate-100 text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
-                      }`}
+                      className={`p-2.5 rounded-xl transition-all duration-200 ${favoriteStatus[selectedBarber.id]
+                        ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
+                        : "bg-slate-100 text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
+                        }`}
                       title={favoriteStatus[selectedBarber.id] ? "Favorilerden çıkar" : "Favorilere ekle"}
                     >
-                      <Star 
-                        className={`w-5 h-5 transition-transform duration-200 ${favoriteStatus[selectedBarber.id] ? "fill-current scale-110" : ""}`} 
+                      <Star
+                        className={`w-5 h-5 transition-transform duration-200 ${favoriteStatus[selectedBarber.id] ? "fill-current scale-110" : ""}`}
                       />
                     </button>
                   </div>
@@ -195,9 +194,9 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
                     <Calendar size={18} />
                     Randevu Al
                   </button>
-                  
+
                   {selectedBarber.latitude && selectedBarber.longitude && (
-                    <button 
+                    <button
                       onClick={() => {
                         const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedBarber.latitude},${selectedBarber.longitude}`;
                         window.open(url, '_blank');
@@ -237,16 +236,15 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
                 <div className="space-y-3">
                   {filteredBarbers.map(barber => {
                     if (!barber.latitude || !barber.longitude) return null;
-                    
+
                     return (
                       <div
                         key={barber.id}
                         onClick={() => setSelectedBarber(barber)}
-                        className={`p-4 rounded-xl border cursor-pointer transition ${
-                          selectedBarber?.id === barber.id
-                            ? "border-slate-900 bg-slate-50"
-                            : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
-                        }`}
+                        className={`p-4 rounded-xl border cursor-pointer transition ${selectedBarber?.id === barber.id
+                          ? "border-slate-900 bg-slate-50"
+                          : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                          }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400 flex-shrink-0">
@@ -265,7 +263,7 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
                                 Çalışma:{" "}
                                 {barber.workingHours
                                   .filter((wh) => !wh.isClosed)
-                                  .map((wh) => `${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]} ${wh.startTime}-${wh.endTime}`)
+                                  .map((wh) => `${["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"][wh.dayOfWeek]} ${wh.startTime}-${wh.endTime}`)
                                   .slice(0, 1)
                                   .join(", ") || "Kapalı"}
                               </p>
@@ -335,7 +333,7 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
                     <ul className="text-sm text-slate-700 space-y-1">
                       {selectedBarber.workingHours.map((wh) => (
                         <li key={wh.dayOfWeek} className="flex justify-between">
-                          <span>{["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][wh.dayOfWeek]}</span>
+                          <span>{["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"][wh.dayOfWeek]}</span>
                           <span>{wh.isClosed ? "Kapalı" : `${wh.startTime} - ${wh.endTime}`}</span>
                         </li>
                       ))}
@@ -356,8 +354,8 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
           </div>
         )}
 
-        <FullScreenMap 
-          barbers={filteredBarbers} 
+        <FullScreenMap
+          barbers={filteredBarbers}
           center={effectiveCenter}
           userLocation={userLocation || undefined}
           selectedBarberId={selectedBarber?.id}

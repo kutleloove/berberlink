@@ -1,24 +1,37 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { LocationForm } from "./_components/location-form";
 import { SubscriptionSettingsForm } from "./_components/subscription-settings-form";
+import { SubscriptionStatus } from "./_components/subscription-status";
 
 export default async function SettingsPage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
-    include: { profile: true }
+    where: { id: session.userId as string },
+    include: {
+      profile: {
+        include: {
+          subscriptions: {
+            take: 1,
+            orderBy: { createdAt: "desc" }, // En son abonelik
+            include: { package: true }
+          }
+        }
+      }
+    }
   });
 
   if (!dbUser || dbUser.role !== "BARBER" || !dbUser.profile) {
     redirect("/dashboard");
   }
 
+  const currentSubscription = dbUser.profile.subscriptions[0];
+
   // Abonelik ayarlarını parse et
-  const allowedRecurrenceTypes = dbUser.profile.allowedRecurrenceTypes 
+  const allowedRecurrenceTypes = dbUser.profile.allowedRecurrenceTypes
     ? (dbUser.profile.allowedRecurrenceTypes as any as string[])
     : null;
 
@@ -32,9 +45,15 @@ export default async function SettingsPage() {
       </div>
 
       <div className="space-y-6">
+        <SubscriptionStatus
+          subscription={currentSubscription as any} // Tip uyuşmazlığını aşmak için şimdilik any
+          isActive={dbUser.profile.isActive}
+          subscriptionEndsAt={dbUser.profile.subscriptionEndsAt}
+        />
+
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h2 className="text-xl font-semibold mb-6">Konum Bilgileri</h2>
-          <LocationForm 
+          <LocationForm
             initialAddress={dbUser.profile.address || ""}
             initialLat={dbUser.profile.latitude}
             initialLng={dbUser.profile.longitude}

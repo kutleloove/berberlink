@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 export async function getAppointments(profileId: string, type: "active" | "past" | "all" | "week" = "all") {
   const now = new Date();
-  
+
   const where: any = {
     barberId: profileId,
     status: { not: "CANCELLED" }
@@ -23,12 +23,12 @@ export async function getAppointments(profileId: string, type: "active" | "past"
     const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Pazartesi
     startOfWeek.setDate(diff);
     startOfWeek.setHours(0, 0, 0, 0);
-    
+
     // Bu haftanın sonu (Pazar)
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
-    
+
     where.startTime = {
       gte: startOfWeek,
       lte: endOfWeek,
@@ -124,10 +124,10 @@ export async function generateFutureSubscriptionAppointments(barberId: string) {
     // Haftalık için: Bir sonraki hafta aynı gün
     // Aylık için: Bir sonraki ay aynı gün
     // Günlük için: Bir sonraki gün
-    
+
     let currentDate = new Date(subscription.startDate);
     currentDate.setHours(hours, minutes, 0, 0);
-    
+
     if (subscription.recurrenceType === "WEEKLY") {
       // Bir sonraki hafta aynı gün
       currentDate.setDate(currentDate.getDate() + 7);
@@ -184,7 +184,7 @@ export async function generateFutureSubscriptionAppointments(barberId: string) {
         const exception = subscription.exceptions.find(
           ex => ex.originalDate.toISOString().split('T')[0] === dateStr
         );
-        
+
         // Eğer RESCHEDULED ise, yeni tarihi kullan
         if (exception?.exceptionType === "RESCHEDULED" && exception.newDate) {
           const newDateTime = new Date(exception.newDate);
@@ -243,7 +243,7 @@ export async function generateFutureSubscriptionAppointments(barberId: string) {
       if (subscription.recurrenceType === "WEEKLY" && subscription.dayOfWeek !== null) {
         const targetDay = subscription.dayOfWeek; // 0=Pazar, 1=Pazartesi, ..., 6=Cumartesi
         const currentDay = currentDate.getDay(); // 0=Pazar, 1=Pazartesi, ..., 6=Cumartesi
-        
+
         if (currentDay !== targetDay) {
           // Doğru güne geç
           const daysToAdd = (targetDay - currentDay + 7) % 7;
@@ -262,7 +262,7 @@ export async function generateFutureSubscriptionAppointments(barberId: string) {
       if (subscription.recurrenceType === "MONTHLY" && subscription.dayOfMonth !== null) {
         const targetDay = subscription.dayOfMonth;
         const currentDay = currentDate.getDate();
-        
+
         if (currentDay !== targetDay) {
           // Ayın son günü kontrolü (örneğin 31. gün yoksa)
           const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -337,11 +337,11 @@ export async function reassignAppointment(
   newEndTime: Date,
   reason?: string
 ) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -358,7 +358,7 @@ export async function reassignAppointment(
     }
 
     // Eğer değişiklik varsa, müşteri onayı için AppointmentChange oluştur
-    const hasChange = 
+    const hasChange =
       appointment.staffId !== newStaffId ||
       appointment.startTime.getTime() !== newStartTime.getTime() ||
       appointment.endTime.getTime() !== newEndTime.getTime();
@@ -416,11 +416,11 @@ export async function reassignAppointment(
 }
 
 export async function cancelAppointment(appointmentId: string) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -443,11 +443,11 @@ export async function cancelAppointment(appointmentId: string) {
 }
 
 export async function changeAppointmentStaff(appointmentId: string, newStaffId: string | null) {
-  const user = await currentUser();
-  if (!user) return { error: "Yetkisiz işlem." };
+  const session = await getSession();
+  if (!session?.userId) return { error: "Yetkisiz işlem." };
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 

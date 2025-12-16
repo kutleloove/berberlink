@@ -1,6 +1,6 @@
-import { syncUser } from "@/lib/auth-sync";
+import { getCurrentUser } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton } from "@/components/auth/user-button";
 import Link from "next/link";
 import { Scissors } from "lucide-react";
 
@@ -10,12 +10,9 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   // ... syncUser ve error handling kodları burada kalacak ...
-  try {
-    const user = await syncUser();
-    if (!user) redirect("/sign-in");
-  } catch (error) {
-    console.error("Auth sync error:", error);
-  }
+
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in");
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -24,12 +21,12 @@ export default async function DashboardLayout({
           <Scissors className="w-6 h-6" />
           <span>BerberLink</span>
         </Link>
-        
+
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-sm font-medium text-slate-500 hover:text-slate-900">
-            Ana Sayfa
+          <Link href="/map" className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1">
+            Harita
           </Link>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </header>
 

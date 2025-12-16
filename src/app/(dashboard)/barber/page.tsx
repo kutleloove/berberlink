@@ -1,13 +1,13 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
 export default async function BarberDashboardPage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: {
       profile: {
         include: {
@@ -38,27 +38,27 @@ export default async function BarberDashboardPage() {
           <p className="text-slate-500">Yönetim Paneli</p>
         </div>
         <div className="flex gap-4">
-          <a 
-            href="/barber/availability" 
+          <a
+            href="/barber/availability"
             className="bg-white text-slate-900 border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition"
           >
             Çalışma Saatleri
           </a>
-          <a 
-            href="/barber/services" 
+          <a
+            href="/barber/services"
             className="bg-slate-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition"
           >
             Hizmetleri Yönet
           </a>
-          <a 
-            href="/barber/settings" 
+          <a
+            href="/barber/settings"
             className="bg-white text-slate-900 border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition"
           >
             Ayarlar
           </a>
-          <a 
-            href={`/${profile.slug}`} 
-            target="_blank" 
+          <a
+            href={`/${profile.slug}`}
+            target="_blank"
             className="text-slate-600 hover:text-slate-900 font-medium flex items-center gap-2 border px-4 py-2 rounded-lg"
           >
             Sayfayı Görüntüle ↗
@@ -120,11 +120,11 @@ export default async function BarberDashboardPage() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                       ${apt.status === "CONFIRMED" ? "bg-green-100 text-green-800" :
                         apt.status === "PENDING" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-red-100 text-red-800"
+                          "bg-red-100 text-red-800"
                       }`}>
                       {apt.status === "CONFIRMED" ? "Onaylandı" :
-                       apt.status === "PENDING" ? "Bekliyor" :
-                       apt.status === "CANCELLED" ? "İptal" : "Tamamlandı"}
+                        apt.status === "PENDING" ? "Bekliyor" :
+                          apt.status === "CANCELLED" ? "İptal" : "Tamamlandı"}
                     </span>
                   </td>
                   <td className="px-6 py-4">

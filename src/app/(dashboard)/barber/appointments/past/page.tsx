@@ -1,15 +1,15 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { getAppointments } from "@/actions/appointments";
 import { AppointmentList } from "../_components/appointment-list";
 
 export default async function PastAppointmentsPage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -19,7 +19,7 @@ export default async function PastAppointmentsPage() {
 
   const appointments = await getAppointments(dbUser.profile.id, "past");
   const staffList = await db.staff.findMany({
-    where: { 
+    where: {
       profileId: dbUser.profile.id,
       isActive: true
     }

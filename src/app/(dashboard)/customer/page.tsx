@@ -1,15 +1,16 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { SubscriptionAppointments } from "./_components/subscription-appointments";
 
 export default async function CustomerPage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: {
+      profile: true,
       appointmentsAsCustomer: {
         include: {
           barber: true,
@@ -33,9 +34,9 @@ export default async function CustomerPage() {
 
       <div className="grid gap-6">
         <SubscriptionAppointments />
-        
+
         <h2 className="text-xl font-bold text-slate-900">Randevularım</h2>
-        
+
         {dbUser.appointmentsAsCustomer.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center">
             <p className="text-slate-500 mb-4">Henüz bir randevunuz bulunmuyor.</p>
@@ -77,12 +78,12 @@ export default async function CustomerPage() {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                           ${apt.status === "CONFIRMED" ? "bg-green-100 text-green-800" :
                             apt.status === "PENDING" ? "bg-yellow-100 text-yellow-800" :
-                            apt.status === "CANCELLED" ? "bg-red-100 text-red-800" :
-                            "bg-slate-100 text-slate-800"
+                              apt.status === "CANCELLED" ? "bg-red-100 text-red-800" :
+                                "bg-slate-100 text-slate-800"
                           }`}>
                           {apt.status === "CONFIRMED" ? "Onaylandı" :
-                           apt.status === "PENDING" ? "Bekliyor" :
-                           apt.status === "CANCELLED" ? "İptal" : "Tamamlandı"}
+                            apt.status === "PENDING" ? "Bekliyor" :
+                              apt.status === "CANCELLED" ? "İptal" : "Tamamlandı"}
                         </span>
                       </td>
                     </tr>
@@ -105,7 +106,7 @@ export default async function CustomerPage() {
           </a>
         </div>
       )}
-      
+
       {dbUser.role !== "BARBER" && (
         <div className="mt-12 p-6 bg-slate-900 text-white rounded-2xl flex items-center justify-between">
           <div>

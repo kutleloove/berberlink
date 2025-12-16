@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { StaffForm } from "../../_components/staff-form";
 import { notFound } from "next/navigation";
@@ -10,11 +10,11 @@ export default async function EditStaffPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -50,8 +50,8 @@ export default async function EditStaffPage({
         <p className="text-sm text-slate-500 mt-1">{staff.name}</p>
       </div>
 
-      <StaffForm 
-        roles={roles} 
+      <StaffForm
+        roles={roles}
         services={services}
         staff={{
           ...staff,

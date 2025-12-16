@@ -1,15 +1,15 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { getBarberSubscriptionAppointments } from "@/actions/subscription-appointment";
 import { SubscriptionAppointmentsList } from "../_components/subscription-appointments-list";
 
 export default async function SubscriptionAppointmentsPage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 
@@ -19,7 +19,7 @@ export default async function SubscriptionAppointmentsPage() {
 
   const subscriptions = await getBarberSubscriptionAppointments(dbUser.profile.id);
   const staffList = await db.staff.findMany({
-    where: { 
+    where: {
       profileId: dbUser.profile.id,
       isActive: true
     }
@@ -32,8 +32,8 @@ export default async function SubscriptionAppointmentsPage() {
         <p className="text-sm text-slate-500 mt-1">Tekrarlayan randevuları yönetin</p>
       </div>
 
-      <SubscriptionAppointmentsList 
-        subscriptions={subscriptions as any} 
+      <SubscriptionAppointmentsList
+        subscriptions={subscriptions as any}
         staffList={staffList}
         barberId={dbUser.profile.id}
       />

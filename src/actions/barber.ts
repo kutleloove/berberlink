@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 export async function createBarberProfile(formData: FormData) {
-  const { userId } = await auth();
+  const session = await getSession();
+  const userId = session?.userId;
 
   if (!userId) {
     return { error: "Oturum açmanız gerekiyor." };

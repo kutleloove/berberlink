@@ -9,7 +9,7 @@ import Link from "next/link";
 
 interface StaffFormProps {
   roles: StaffRole[];
-  services: Service[];
+  services: (Omit<Service, "price"> & { price: number | any })[];
   staff?: {
     id: string;
     name: string;

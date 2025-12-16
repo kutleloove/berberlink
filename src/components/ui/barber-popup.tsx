@@ -23,6 +23,8 @@ interface BarberPopupProps {
     logoUrl?: string | null;
     averageRating: number | null;
     services?: Service[];
+    latitude: number | null;
+    longitude: number | null;
   };
   onBookAppointment?: (barber: BarberPopupProps['barber']) => void;
   isFavorite?: boolean;
@@ -65,11 +67,11 @@ export default function BarberPopup({ barber, onBookAppointment, isFavorite: ini
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     setIsLoading(true);
     const result = await toggleFavorite(barber.id);
     if (result && !result.error) {
-      setIsFavorite(result.isFavorite);
+      setIsFavorite(result.isFavorite ?? false);
     }
     setIsLoading(false);
   };
@@ -86,8 +88,8 @@ export default function BarberPopup({ barber, onBookAppointment, isFavorite: ini
             {/* Logo with better styling */}
             <div className="relative w-20 h-20 rounded-2xl bg-white border-3 border-white shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-slate-100">
               {barber.logoUrl ? (
-                <img 
-                  src={barber.logoUrl} 
+                <img
+                  src={barber.logoUrl}
                   alt={barber.shopName}
                   className="w-full h-full object-cover"
                 />
@@ -103,7 +105,7 @@ export default function BarberPopup({ barber, onBookAppointment, isFavorite: ini
               <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-2 leading-tight">
                 {barber.shopName}
               </h3>
-              
+
               {/* Rating with improved design */}
               {hasRating && (
                 <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit">
@@ -120,15 +122,14 @@ export default function BarberPopup({ barber, onBookAppointment, isFavorite: ini
             <button
               onClick={handleFavoriteClick}
               disabled={isLoading}
-              className={`flex-shrink-0 p-2.5 rounded-xl transition-all duration-200 ${
-                isFavorite
-                  ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
-                  : "bg-white/80 backdrop-blur-sm text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              className={`flex-shrink-0 p-2.5 rounded-xl transition-all duration-200 ${isFavorite
+                ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
+                : "bg-white/80 backdrop-blur-sm text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
+                } ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               title={isFavorite ? "Favorilerden çıkar" : "Favorilere ekle"}
             >
-              <Star 
-                className={`w-5 h-5 transition-transform duration-200 ${isFavorite ? "fill-current scale-110" : ""}`} 
+              <Star
+                className={`w-5 h-5 transition-transform duration-200 ${isFavorite ? "fill-current scale-110" : ""}`}
               />
             </button>
           </div>
@@ -153,17 +154,17 @@ export default function BarberPopup({ barber, onBookAppointment, isFavorite: ini
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log("Randevu Al button clicked", { 
-                hasOnBookAppointment: !!onBookAppointment, 
+              console.log("Randevu Al button clicked", {
+                hasOnBookAppointment: !!onBookAppointment,
                 barberId: barber.id,
                 servicesCount: barber.services?.length || 0,
                 currentState: isAppointmentModalOpen
               });
-              
+
               // Modal'ı aç - callback'i çağırmadan önce
               console.log("Setting modal state to true...");
               setIsAppointmentModalOpen(true);
-              
+
               // Callback'i çağırma - çünkü bu map-page-client'taki state'i güncelliyor
               // ve barber-popup'taki state ile çakışıyor
               // if (onBookAppointment) {

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import MapPageClient from "./_components/map-page-client";
 import { getFavoriteBarbers } from "@/actions/favorite";
 
@@ -64,11 +64,12 @@ export default async function MapPage() {
       if (service.price === null || service.price === undefined) {
         priceValue = "0";
       } else if (typeof service.price === 'object' && 'toNumber' in service.price) {
+        // @ts-ignore - Prisma Decimal handling
         priceValue = service.price.toNumber().toString();
       } else {
         priceValue = String(service.price);
       }
-      
+
       return {
         id: service.id,
         name: service.name,
@@ -76,20 +77,26 @@ export default async function MapPage() {
         price: priceValue,
       };
     }) || [],
+    workingHours: barber.workingHours?.map(wh => ({
+      dayOfWeek: wh.dayOfWeek,
+      isClosed: wh.isClosed,
+      startTime: wh.shifts[0]?.startTime || "",
+      endTime: wh.shifts[0]?.endTime || "",
+    })) || [],
   }));
 
   // Favori berberleri çek
   const favoriteBarbersData = await getFavoriteBarbers();
-  
+
   // Favori berber ID'lerini çıkar
   const favoriteBarberIds = new Set(favoriteBarbersData.map(b => b.id));
-  
+
   // Tüm berberlere isFavorite bilgisini ekle
   const barbersWithFavorite = barbersWithLogo.map(barber => ({
     ...barber,
     isFavorite: favoriteBarberIds.has(barber.id),
   }));
-  
+
   // Favori berberleri aynı formata dönüştür
   const favoriteBarbers = favoriteBarbersData
     .filter(barber => barber.latitude && barber.longitude)
@@ -102,11 +109,12 @@ export default async function MapPage() {
         if (service.price === null || service.price === undefined) {
           priceValue = "0";
         } else if (typeof service.price === 'object' && 'toNumber' in service.price) {
+          // @ts-ignore
           priceValue = service.price.toNumber().toString();
         } else {
           priceValue = String(service.price);
         }
-        
+
         return {
           id: service.id,
           name: service.name,
@@ -122,5 +130,8 @@ export default async function MapPage() {
       })) || [],
     }));
 
-  return <MapPageClient barbers={barbersWithFavorite} favoriteBarbers={favoriteBarbers} mapCenter={mapCenter} />;
+  const session = await getSession();
+  const isAuthenticated = !!session?.userId;
+
+  return <MapPageClient barbers={barbersWithFavorite} favoriteBarbers={favoriteBarbers} mapCenter={mapCenter} isAuthenticated={isAuthenticated} />;
 }

@@ -1,10 +1,10 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { StaffRoleForm } from "../_components/staff-role-form";
 
 export default async function NewStaffRolePage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   return (
     <div className="p-6">

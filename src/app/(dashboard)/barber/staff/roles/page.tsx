@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { getStaffRoles } from "@/actions/staff-role";
 import { StaffRoleList } from "./_components/staff-role-list";
@@ -7,11 +7,11 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 export default async function StaffRolesPage() {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in");
+  const session = await getSession();
+  if (!session?.userId) redirect("/sign-in");
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: { profile: true }
   });
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { generateFutureSubscriptionAppointments } from "./appointments";
 
@@ -29,11 +29,11 @@ export async function getBarberSubscriptionSettings(barberId: string) {
 
 // Kullanıcının bu berber için aktif abonelik randevusu var mı kontrol et
 export async function hasActiveSubscriptionAppointment(barberId: string) {
-  const user = await currentUser();
-  if (!user) return false;
+  const session = await getSession();
+  if (!session?.userId) return false;
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
   });
 
   if (!dbUser) return false;
@@ -61,13 +61,13 @@ export async function createSubscriptionAppointment(
   dayOfWeek?: number, // Haftalık için
   dayOfMonth?: number // Aylık için
 ) {
-  const user = await currentUser();
-  if (!user) {
+  const session = await getSession();
+  if (!session?.userId) {
     return { error: "Randevu almak için giriş yapmalısınız." };
   }
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
   });
 
   if (!dbUser) {
@@ -173,11 +173,11 @@ export async function createSubscriptionAppointment(
 
 // Kullanıcının abonelik randevularını getir
 export async function getSubscriptionAppointments() {
-  const user = await currentUser();
-  if (!user) return [];
+  const session = await getSession();
+  if (!session?.userId) return [];
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
   });
 
   if (!dbUser) return [];
@@ -222,13 +222,13 @@ export async function getSubscriptionAppointments() {
 
 // Abonelik randevusunu iptal et
 export async function cancelSubscriptionAppointment(subscriptionId: string) {
-  const user = await currentUser();
-  if (!user) {
+  const session = await getSession();
+  if (!session?.userId) {
     return { error: "Yetkisiz işlem." };
   }
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
   });
 
   if (!dbUser) {
@@ -266,13 +266,13 @@ export async function cancelSubscriptionAppointmentDate(
   subscriptionId: string,
   date: Date
 ) {
-  const user = await currentUser();
-  if (!user) {
+  const session = await getSession();
+  if (!session?.userId) {
     return { error: "Yetkisiz işlem." };
   }
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
   });
 
   if (!dbUser) {
@@ -333,13 +333,13 @@ export async function rescheduleSubscriptionAppointmentDate(
   newDate: Date,
   newTime: string
 ) {
-  const user = await currentUser();
-  if (!user) {
+  const session = await getSession();
+  if (!session?.userId) {
     return { error: "Yetkisiz işlem." };
   }
 
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
   });
 
   if (!dbUser) {

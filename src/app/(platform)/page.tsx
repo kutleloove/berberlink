@@ -1,21 +1,21 @@
 import Link from "next/link";
 import { ArrowRight, Scissors, Calendar, Store, ShieldCheck, MapPin, Search } from "lucide-react";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
 import MiniMap from "@/components/ui/mini-map";
 import { Footer } from "@/components/ui/footer";
 
 export default async function LandingPage() {
-  const user = await currentUser();
-  
+  const session = await getSession();
+
   // Eğer kullanıcı giriş yapmamışsa, klasik Landing Page göster
-  if (!user) {
+  if (!session?.userId) {
     return <MarketingLanding />;
   }
 
   // Giriş yapmış kullanıcı için veri çekelim
   const dbUser = await db.user.findUnique({
-    where: { email: user.emailAddresses[0].emailAddress },
+    where: { id: session.userId as string },
     include: {
       appointmentsAsCustomer: {
         where: { startTime: { gte: new Date() } }, // Gelecek randevular
@@ -29,7 +29,7 @@ export default async function LandingPage() {
   // Yakındaki berberleri çek (Şimdilik rastgele 5 aktif berber)
   // Gerçek lokasyon bazlı arama için PostGIS veya Haversine formülü gerekir, şimdilik basit tutalım.
   const nearbyBarbers = await db.profile.findMany({
-    where: { 
+    where: {
       // isActive kontrolünü kaldırdık (test için)
       latitude: { not: null },
       longitude: { not: null }
@@ -64,7 +64,7 @@ export default async function LandingPage() {
         {/* Karşılama */}
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-slate-900">
-            Merhaba, {dbUser?.name || user.firstName} 👋
+            Merhaba, {dbUser?.name} 👋
           </h1>
           <p className="text-slate-500 mt-1">Bugün saçların için harika bir gün!</p>
         </div>
@@ -73,13 +73,13 @@ export default async function LandingPage() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-10">
           <div className="relative max-w-2xl mx-auto">
             <Search className="absolute left-4 top-3.5 text-slate-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Berber adı, semt veya hizmet ara..." 
+            <input
+              type="text"
+              placeholder="Berber adı, semt veya hizmet ara..."
               className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 outline-none text-slate-900 placeholder:text-slate-400"
             />
           </div>
-          
+
           <div className="flex flex-wrap gap-2 justify-center mt-4">
             {["Saç Kesimi", "Sakal Tıraşı", "Cilt Bakımı", "Çocuk Tıraşı"].map(tag => (
               <button key={tag} className="px-4 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-sm text-slate-600 hover:border-slate-900 hover:text-slate-900 transition">
@@ -95,7 +95,7 @@ export default async function LandingPage() {
             <h2 className="font-bold text-xl text-slate-900 flex items-center gap-2">
               <Calendar size={20} /> Yaklaşan Randevular
             </h2>
-            
+
             {dbUser?.appointmentsAsCustomer && dbUser.appointmentsAsCustomer.length > 0 ? (
               <div className="space-y-4">
                 {dbUser.appointmentsAsCustomer.map(apt => (
@@ -106,7 +106,7 @@ export default async function LandingPage() {
                         <p className="text-sm text-slate-500">{apt.services.map(s => s.name).join(", ")}</p>
                       </div>
                       <span className="bg-green-50 text-green-700 text-xs font-bold px-2 py-1 rounded-lg">
-                        {apt.startTime.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
+                        {apt.startTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div className="text-sm text-slate-600 border-t pt-2 mt-2 flex justify-between">
@@ -239,7 +239,7 @@ function MarketingLanding() {
                 </span>
               </h1>
               <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto">
-                Sıra beklemeye son. İstediğiniz berberden, istediğiniz saatte randevunuzu alın. 
+                Sıra beklemeye son. İstediğiniz berberden, istediğiniz saatte randevunuzu alın.
                 Berberler için modern randevu yönetim sistemi.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -258,11 +258,11 @@ function MarketingLanding() {
               </div>
             </div>
           </div>
-          
+
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 pointer-events-none">
-             <div className="absolute top-20 left-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-             <div className="absolute top-20 right-10 w-72 h-72 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-             <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+            <div className="absolute top-20 left-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+            <div className="absolute top-20 right-10 w-72 h-72 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
           </div>
         </section>
 
@@ -274,17 +274,17 @@ function MarketingLanding() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <FeatureCard 
+              <FeatureCard
                 icon={<Calendar className="w-8 h-8 text-blue-600" />}
                 title="7/24 Online Randevu"
                 description="Müşterileriniz dükkan kapalıyken bile randevu alabilsin. Telefon trafiğinden kurtulun."
               />
-              <FeatureCard 
+              <FeatureCard
                 icon={<Store className="w-8 h-8 text-indigo-600" />}
                 title="Size Özel Web Sitesi"
                 description="Kendi alan adınızla (berberahmet.com) profesyonel görünümlü bir web siteniz olsun."
               />
-              <FeatureCard 
+              <FeatureCard
                 icon={<ShieldCheck className="w-8 h-8 text-emerald-600" />}
                 title="Güvenilir İşletmeler"
                 description="Puanlama ve yorum sistemi ile hizmet kalitenizi gösterin, yeni müşteriler kazanın."

@@ -1,18 +1,18 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 export async function toggleFavorite(barberId: string) {
   try {
-    const user = await currentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.userId) {
       return { error: "Giriş yapmanız gerekiyor" };
     }
 
     const dbUser = await db.user.findUnique({
-      where: { email: user.emailAddresses[0].emailAddress },
+      where: { id: session.userId as string },
     });
 
     if (!dbUser) {
@@ -55,13 +55,13 @@ export async function toggleFavorite(barberId: string) {
 
 export async function getFavoriteStatus(barberId: string): Promise<boolean> {
   try {
-    const user = await currentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.userId) {
       return false;
     }
 
     const dbUser = await db.user.findUnique({
-      where: { email: user.emailAddresses[0].emailAddress },
+      where: { id: session.userId as string },
     });
 
     if (!dbUser) {
@@ -86,13 +86,13 @@ export async function getFavoriteStatus(barberId: string): Promise<boolean> {
 
 export async function getFavoriteBarbers() {
   try {
-    const user = await currentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.userId) {
       return [];
     }
 
     const dbUser = await db.user.findUnique({
-      where: { email: user.emailAddresses[0].emailAddress },
+      where: { id: session.userId as string },
       include: {
         favorites: {
           include: {
