@@ -31,6 +31,7 @@ enum SubscriptionType {
 enum PaymentMethod {
   CASH
   CREDIT_CARD
+  PROMO_CODE
 }
 
 enum RecurrenceType {

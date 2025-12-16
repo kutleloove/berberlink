@@ -7,7 +7,8 @@ import {
   ShieldCheck,
   LayoutDashboard,
   MessageSquare,
-  LogOut
+  LogOut,
+  Users
 } from "lucide-react";
 import { UserButton } from "@/components/auth/user-button";
 
@@ -24,6 +25,7 @@ export default async function AdminLayout({
 
   const sidebarItems = [
     { label: "Panel", href: "/sys-panel-x9z", icon: LayoutDashboard },
+    { label: "Kullanıcılar", href: "/sys-panel-x9z/users", icon: Users },
     { label: "Paket Yönetimi", href: "/sys-panel-x9z/packages", icon: Package },
     { label: "Promosyonlar", href: "/sys-panel-x9z/promocodes", icon: Tags },
     { label: "Doğrulamalar", href: "/sys-panel-x9z/verifications", icon: ShieldCheck },

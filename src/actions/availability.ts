@@ -3,8 +3,8 @@
 import { db } from "@/lib/db";
 
 export async function getAvailableSlots(
-  barberId: string, 
-  date: Date, 
+  barberId: string,
+  date: Date,
   staffId?: string, // Personel ID (opsiyonel)
   serviceId?: string // Hizmet ID - bu hizmete atanmış personelleri bulmak için
 ) {
@@ -33,7 +33,7 @@ export async function getAvailableSlots(
     if (staffWorkingHour && !staffWorkingHour.isClosed && staffWorkingHour.shifts.length > 0) {
       workingHour = staffWorkingHour;
       shifts = staffWorkingHour.shifts;
-      
+
       // Personel bazlı molalar
       breaks = await db.staffBreak.findMany({
         where: {
@@ -71,10 +71,10 @@ export async function getAvailableSlots(
     if (workingHour) {
       // Eğer personel seçildiyse, sadece o personelin vardiyalarını göster
       if (staffId) {
-        shifts = workingHour.shifts.filter(s => s.staffId === staffId);
+        shifts = workingHour.shifts.filter((s: any) => s.staffId === staffId);
       } else {
         // Personel seçilmediyse, personel atanmamış vardiyaları göster
-        shifts = workingHour.shifts.filter(s => !s.staffId);
+        shifts = workingHour.shifts.filter((s: any) => !s.staffId);
       }
     }
 
@@ -108,7 +108,7 @@ export async function getAvailableSlots(
   // O günkü randevuları çek - Personel bazlı veya işletme geneli
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
-  
+
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
 
@@ -164,10 +164,10 @@ export async function getAvailableSlots(
       const isInBreak = breaks.some(br => {
         const [brStartH, brStartM] = br.startTime.split(":").map(Number);
         const [brEndH, brEndM] = br.endTime.split(":").map(Number);
-        
+
         const breakStart = new Date(date);
         breakStart.setHours(brStartH, brStartM, 0, 0);
-        
+
         const breakEnd = new Date(date);
         breakEnd.setHours(brEndH, brEndM, 0, 0);
 
@@ -207,12 +207,12 @@ export async function getAvailableSlots(
 
 // Bir tarihin müsait olup olmadığını kontrol et (takvim için)
 export async function isDateAvailable(
-  barberId: string, 
-  date: Date, 
+  barberId: string,
+  date: Date,
   staffId?: string
 ): Promise<boolean> {
   const dayOfWeek = date.getDay();
-  
+
   let workingHour: any = null;
 
   // Eğer personel seçildiyse, personelin çalışma saatlerini kontrol et

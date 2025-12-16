@@ -93,14 +93,8 @@ function CheckoutModal({ pkg, onClose }: { pkg: Package, onClose: () => void }) 
                 </div>
 
                 <div className="p-6">
-                    <div className="mb-6 flex items-center justify-between rounded-lg bg-indigo-50 p-4 border border-indigo-100">
-                        <span className="font-medium text-indigo-900">Ödenecek Tutar</span>
-                        <span className="text-2xl font-bold text-indigo-700">
-                            {Number(pkg.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                        </span>
-                    </div>
-
-                    <CheckoutForm packageId={pkg.id} onSuccess={onClose} />
+                    {/* Static price display removed - moved to CheckoutForm */}
+                    <CheckoutForm packageId={pkg.id} price={Number(pkg.price)} onSuccess={onClose} />
                 </div>
             </div>
         </div>

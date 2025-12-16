@@ -150,3 +150,44 @@ export async function verifyBarber(id: string) {
     return { error: "Onaylanamadı." };
   }
 }
+
+export async function updateUserStatus(userId: string, data: {
+  role?: "BARBER" | "CUSTOMER" | "ADMIN",
+  isActive?: boolean,
+  subscriptionEndsAt?: Date | null
+}) {
+  if (!await checkAdmin()) return { error: "Yetkisiz işlem." };
+
+  try {
+    // 1. Kullanıcı Rolünü Güncelle
+    if (data.role) {
+      await db.user.update({
+        where: { id: userId },
+        data: { role: data.role }
+      });
+    }
+
+    // 2. Profil Varsa, Durumu ve Süreyi Güncelle
+    // Kullanıcının profilini bulalım
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: { profile: true }
+    });
+
+    if (user?.profile) {
+      await db.profile.update({
+        where: { id: user.profile.id },
+        data: {
+          isActive: data.isActive !== undefined ? data.isActive : user.profile.isActive,
+          subscriptionEndsAt: data.subscriptionEndsAt !== undefined ? data.subscriptionEndsAt : user.profile.subscriptionEndsAt
+        }
+      });
+    }
+
+    revalidatePath("/sys-panel-x9z/users");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Kullanıcı güncellenemedi." };
+  }
+}

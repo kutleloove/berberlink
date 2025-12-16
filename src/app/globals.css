@@ -1,311 +1,84 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Ana Renkler (Gece Mavisi Teması) */
+  --primary-50: #EEF2FF;
+  --primary-100: #E0E7FF;
+  --primary-200: #C7D2FE;
+  --primary-300: #A5B4FC;
+  --primary-400: #818CF8;
+  --primary-500: #6366F1;
+  --primary-600: #4F46E5;
+  --primary-700: #4338CA;
+  --primary-800: #3730A3;
+  --primary-900: #312E81;
+  
+  /* Vurgu Renkleri (Amber/Altın) */
+  --accent-500: #F59E0B;
+  --accent-600: #D97706;
+
+  /* Zeminler */
+  --background: #F8FAFC; /* Slate-50 */
+  --foreground: #0F172A; /* Slate-900 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  
+  /* Logoda ve vurgularda kullanılacak */
+  --color-brand: var(--primary-900);
+  --color-brand-light: var(--primary-600);
+  --color-gold: var(--accent-500);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0F172A;
+    --foreground: #F1F5F9;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
-/* Improved typography for better readability */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
+  font-family: var(--font-display);
   letter-spacing: -0.02em;
-  line-height: 1.2;
 }
 
-p {
-  line-height: 1.6;
+/* Glassmorphism Effect */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Animations for step transitions */
-@keyframes scale-in {
-  from {
-    transform: scale(0);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+/* Modern Button Hover */
+.btn-primary {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.animate-scale-in {
-  animation: scale-in 0.2s ease-out;
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
-/* Leaflet popup styling */
-.leaflet-popup-content-wrapper {
-  border-radius: 0.75rem;
-  padding: 0 !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-  width: 300px !important;
-  max-width: 300px !important;
-  min-width: 280px !important;
-}
-
-.leaflet-popup-content {
-  margin: 0 !important;
-  width: 300px !important;
-  max-width: 300px !important;
-  min-width: 280px !important;
-}
-
-.leaflet-popup-tip {
-  background: white;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.barber-popup .leaflet-popup-content-wrapper {
-  overflow: hidden;
-}
-
-/* Ensure popup is visible immediately */
-.leaflet-popup {
-  opacity: 1 !important;
-  visibility: visible !important;
-  z-index: 1000 !important;
-  display: block !important;
-}
-
-.leaflet-popup-content-wrapper {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Fix popup animation */
-.leaflet-popup-close-button {
-  z-index: 1001;
-}
-
-/* Prevent popup from closing immediately */
-.leaflet-popup-pane {
-  pointer-events: auto !important;
-}
-
-/* Google Maps Clone Style - OpenStreetMap tile'larına uygulanan stil */
-.leaflet-container {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #F8F9FA !important;
-}
-
-/* Harita tile'larına filtre ekle - Google Maps Clone görünümü */
-/* Style JSON'dan: Arka plan #F8F9FA, Su #AADAFF, Yeşil #C5E8B7, Yollar #FFFFFF/#E6E6E6, Otoyollar #F3D558/#DFA620 */
-.leaflet-tile-pane {
-  filter: 
-    brightness(1.08) 
-    contrast(0.92) 
-    saturate(0.75)
-    hue-rotate(-8deg);
-}
-
-/* Tile'ların yüklenmesini iyileştir */
-.leaflet-tile {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-}
-
-.leaflet-control-zoom {
-  border: none !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-  border-radius: 4px !important;
-  overflow: hidden;
-}
-
-.leaflet-control-zoom a {
-  background-color: white !important;
-  color: #333 !important;
-  border: none !important;
-  width: 30px !important;
-  height: 30px !important;
-  line-height: 30px !important;
-  font-size: 18px !important;
-  font-weight: 500 !important;
-}
-
-.leaflet-control-zoom a:hover {
-  background-color: #f5f5f5 !important;
-}
-
-.leaflet-control-zoom-in {
-  border-bottom: 1px solid #e0e0e0 !important;
-}
-
-/* Marker stilleri - Google Maps benzeri */
-.leaflet-marker-icon {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  /* Leaflet'in kendi transform mekanizmasını kullan - zoom seviyesine göre senkronize */
-  /* transform-origin kaldırıldı - iconAnchor ile çakışıyor */
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-}
-
-.leaflet-marker-icon:hover {
-  z-index: 1000 !important;
-  /* Hover'da scale yapmıyoruz - zoom ile çakışıyor */
-}
-
-/* Berber marker'ları için özel stil */
-.barber-marker {
-  transition: all 0.3s ease;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  border: none !important;
-  outline: none !important;
-  /* Pin marker'ın alt ucunun tam konuma işaret etmesi için */
-  display: block !important;
-  position: relative !important;
-}
-
-/* Pin marker için özel hizalama - alt ucu tam konuma işaret etmeli */
-.barber-marker-pin {
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  border: none !important;
-  outline: none !important;
-  display: block !important;
-  position: relative !important;
-  /* Leaflet'in kendi transform mekanizmasına izin ver - zoom için gerekli */
-  /* iconAnchor ile senkronize çalışır */
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Pin marker içindeki div */
-.barber-marker-pin > div {
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  border: none !important;
-  outline: none !important;
-  display: block !important;
-  position: relative !important;
-}
-
-/* Leaflet marker pane - marker'ların doğru konumda görünmesi için */
-.leaflet-marker-pane {
-  position: absolute !important;
-}
-
-.leaflet-marker-pane .leaflet-marker-icon {
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  /* Leaflet'in kendi transform mekanizmasını kullan - iconAnchor ile senkronize */
-  /* CSS transform'ları kaldırıldı - Leaflet'in kendi zoom transform'u kullanılıyor */
-}
-
-/* Pin marker için özel - zoom seviyesine göre kaymaması için */
-/* Leaflet'in kendi transform mekanizmasına izin ver - iconAnchor ile senkronize */
-
-/* Quick Appointment Modal Animations */
-@keyframes slide-in-right {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in-modal {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -48%);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
-}
-
-.animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out;
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-/* MapLibre GL JS Popup Styling */
-.maplibregl-popup {
-  max-width: 300px !important;
-  padding: 0 !important;
-  z-index: 1000 !important; /* Modal'dan düşük olmalı */
-}
-
+/* Harita Popup İyileştirmeleri */
 .maplibregl-popup-content {
-  padding: 0 !important;
-  margin: 0 !important;
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.maplibregl-popup-tip {
-  border-top-color: white !important;
-  border-width: 10px !important;
-}
-
-.maplibregl-popup-close-button {
-  width: 24px !important;
-  height: 24px !important;
-  font-size: 18px !important;
-  color: #64748b !important;
-  background: rgba(255, 255, 255, 0.9) !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.2s !important;
-  z-index: 10 !important;
-}
-
-.maplibregl-popup-close-button:hover {
-  background: rgba(255, 255, 255, 1) !important;
-  color: #1e293b !important;
-  transform: scale(1.1) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0,0,0,0.05);
 }

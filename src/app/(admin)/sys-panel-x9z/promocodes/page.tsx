@@ -27,6 +27,20 @@ export default async function PromoCodesPage() {
         select: { id: true, name: true, price: true }
     });
 
+    const formattedPromoCodes = promoCodes.map(pc => ({
+        ...pc,
+        discountAmount: pc.discountAmount ? Number(pc.discountAmount) : null,
+        validPackage: pc.validPackage ? {
+            ...pc.validPackage,
+            price: Number(pc.validPackage.price)
+        } : null
+    }));
+
+    const formattedPackages = packages.map(pkg => ({
+        ...pkg,
+        price: Number(pkg.price)
+    }));
+
     return (
         <div className="space-y-6">
             <div>
@@ -34,7 +48,7 @@ export default async function PromoCodesPage() {
                 <p className="text-slate-500">İndirim ve deneme süresi kodlarını yönetin.</p>
             </div>
 
-            <PromoCodeList promoCodes={promoCodes} packages={packages} />
+            <PromoCodeList promoCodes={formattedPromoCodes} packages={formattedPackages} />
         </div>
     );
 }

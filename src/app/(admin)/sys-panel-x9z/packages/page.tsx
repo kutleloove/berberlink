@@ -19,6 +19,11 @@ export default async function PackagesPage() {
         orderBy: { price: "asc" }
     });
 
+    const formattedPackages = packages.map(pkg => ({
+        ...pkg,
+        price: Number(pkg.price)
+    })) as any;
+
     return (
         <div className="space-y-6">
             <div>
@@ -26,7 +31,7 @@ export default async function PackagesPage() {
                 <p className="text-slate-500">Abonelik paketlerini buradan yönetebilirsiniz.</p>
             </div>
 
-            <PackageList packages={packages} />
+            <PackageList packages={formattedPackages} />
         </div>
     );
 }
