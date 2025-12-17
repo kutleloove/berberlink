@@ -35,7 +35,7 @@ export default async function LandingPage() {
       longitude: { not: null }
     },
     take: 5,
-    select: { id: true, shopName: true, slug: true, address: true, latitude: true, longitude: true }
+    select: { id: true, shopName: true, slug: true, address: true, latitude: true, longitude: true, photos: true }
   });
 
   return (

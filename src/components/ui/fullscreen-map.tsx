@@ -28,6 +28,7 @@ interface Barber {
   isFavorite?: boolean;
   isActive?: boolean;
   services?: Service[];
+  photos?: string[];
 }
 
 export default function FullScreenMap({
@@ -390,7 +391,10 @@ export default function FullScreenMap({
                   display: "inline-block",
                   cursor: "pointer",
                 }}
-                onClick={() => handleMarkerClick(barber)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkerClick(barber);
+                }}
               >
                 <div
                   style={{
@@ -513,9 +517,11 @@ export default function FullScreenMap({
                 display: "block",
                 boxSizing: "border-box",
               }}
-              onClick={() => handleMarkerClick(barber)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerClick(barber);
+              }}
             >
-              {/* Pin gövdesi */}
               <div
                 style={{
                   width: isFavorite ? "48px" : "32px",
@@ -623,8 +629,7 @@ export default function FullScreenMap({
               onMarkerClick(null as any);
             }
           }}
-          closeButton={true}
-          closeOnClick={false}
+          closeButton={false}
           className="barber-popup"
         >
           <div
@@ -636,6 +641,12 @@ export default function FullScreenMap({
               barber={selectedBarber}
               onBookAppointment={handleBookAppointment}
               isFavorite={selectedBarber.isFavorite}
+              onClose={() => {
+                setSelectedBarber(null);
+                if (onMarkerClick) {
+                  onMarkerClick(null as any);
+                }
+              }}
             />
           </div>
         </Popup>

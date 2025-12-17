@@ -12,20 +12,22 @@
   --primary-700: #4338CA;
   --primary-800: #3730A3;
   --primary-900: #312E81;
-  
+
   /* Vurgu Renkleri (Amber/Altın) */
   --accent-500: #F59E0B;
   --accent-600: #D97706;
 
   /* Zeminler */
-  --background: #F8FAFC; /* Slate-50 */
-  --foreground: #0F172A; /* Slate-900 */
+  --background: #F8FAFC;
+  /* Slate-50 */
+  --foreground: #0F172A;
+  /* Slate-900 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
+
   /* Logoda ve vurgularda kullanılacak */
   --color-brand: var(--primary-900);
   --color-brand-light: var(--primary-600);
@@ -50,7 +52,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
 }
@@ -78,7 +85,21 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Harita Popup İyileştirmeleri */
-.maplibregl-popup-content {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid rgba(0,0,0,0.05);
+/* Harita Popup İyileştirmeleri */
+.barber-popup.maplibregl-popup {
+  z-index: 1000;
 }
+
+.barber-popup .maplibregl-popup-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.barber-popup .maplibregl-popup-tip {
+  display: none !important;
+}
+
+/* Default Popup Styles override if needed elsewhere, but let's keep it scoped */

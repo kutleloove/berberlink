@@ -19,6 +19,8 @@ export default async function MapPage() {
       address: true,
       isActive: true,
       averageRating: true,
+      photos: true,
+      logo: true,
       user: {
         select: {
           image: true,
@@ -58,7 +60,8 @@ export default async function MapPage() {
   // Decimal price'ı string'e çevir
   const barbersWithLogo = allBarbers.map(({ user, services, ...barber }) => ({
     ...barber,
-    logoUrl: user?.image || null,
+    logoUrl: barber.logo || user?.image || null,
+    photos: barber.photos, // Pass photos
     services: services?.map(service => {
       let priceValue: string;
       if (service.price === null || service.price === undefined) {
@@ -104,6 +107,7 @@ export default async function MapPage() {
       ...barber,
       logoUrl: user?.image || null,
       isFavorite: true, // Favori berberler listesindeki tüm berberler favori
+      photos: barber.photos || [],
       services: services?.map(service => {
         let priceValue: string;
         if (service.price === null || service.price === undefined) {

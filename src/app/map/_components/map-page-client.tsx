@@ -7,6 +7,7 @@ import { useState, useMemo, useEffect } from "react";
 import { UserButton } from "@/components/auth/user-button";
 import QuickAppointmentModal from "@/components/ui/quick-appointment-modal";
 import { toggleFavorite } from "@/actions/favorite";
+import { Lightbox } from "@/components/ui/lightbox";
 
 const FullScreenMap = dynamic(() => import("@/components/ui/fullscreen-map"), {
   ssr: false,
@@ -38,6 +39,7 @@ interface Barber {
     endTime: string;
     isClosed: boolean;
   }[];
+  photos?: string[];
 }
 
 export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter, isAuthenticated }: { barbers: Barber[], favoriteBarbers?: Barber[], mapCenter: [number, number], isAuthenticated: boolean }) {
@@ -56,6 +58,10 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
     });
     return status;
   });
+
+  // Lightbox State
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // selectedBarber değiştiğinde favori durumunu güncelle
   useEffect(() => {
@@ -104,6 +110,11 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
       ? [selectedBarber.latitude, selectedBarber.longitude]
       : userLocation || mapCenter;
 
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setIsLightboxOpen(true);
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden relative">
       {/* Sol Sidebar - Arama ve Liste */}
@@ -139,48 +150,141 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
           {selectedBarber ? (
             // Seçili Berber Detay Paneli
             <div className="p-4">
-              <button
-                onClick={() => setSelectedBarber(null)}
-                className="mb-4 flex items-center gap-2 text-slate-600 hover:text-slate-900 text-sm"
-              >
-                <X size={18} />
-                Geri Dön
-              </button>
-
               <div className="space-y-4">
                 <div>
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center font-bold text-3xl text-slate-400">
-                      {selectedBarber.shopName[0]}
+                  {/* Hero Image / Gallery Section */}
+                  {selectedBarber.photos && selectedBarber.photos.length > 0 ? (
+                    <div className="mb-4 -mx-4 -mt-4">
+                      {/* Hero Image - Click to Open Lightbox */}
+                      <div
+                        className="relative aspect-video w-full bg-slate-100 mb-2 cursor-pointer group"
+                        onClick={() => openLightbox(0)}
+                      >
+                        <img
+                          src={selectedBarber.photos[0]}
+                          alt={selectedBarber.shopName}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition"></div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedBarber(null); }}
+                          className="absolute top-4 left-4 p-2 bg-white/80 hover:bg-white rounded-full text-slate-900 shadow-sm backdrop-blur-sm transition-all"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      {/* Horizontal Scrollable Thumbnails */}
+                      {selectedBarber.photos.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide">
+                          {selectedBarber.photos.slice(1).map((photo, index) => (
+                            <div
+                              key={index}
+                              onClick={() => openLightbox(index + 1)}
+                              className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:opacity-90 transition"
+                            >
+                              <img src={photo} alt={`${selectedBarber.shopName} ${index + 2}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="px-4 mt-2 flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          {/* LOGO DISPLAY */}
+                          {selectedBarber.logoUrl ? (
+                            <div className="w-16 h-16 rounded-full border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 bg-white">
+                              <img src={selectedBarber.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center font-bold text-2xl text-slate-400 flex-shrink-0">
+                              {selectedBarber.shopName[0]}
+                            </div>
+                          )}
+
+                          <div>
+                            <h2 className="text-2xl font-bold text-slate-900 mb-1">{selectedBarber.shopName}</h2>
+                            {selectedBarber.address && (
+                              <div className="flex items-start gap-1.5 text-slate-600">
+                                <MapPin size={16} className="mt-0.5 flex-shrink-0 text-slate-400" />
+                                <span className="text-sm">{selectedBarber.address}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            if (!selectedBarber) return;
+                            const result = await toggleFavorite(selectedBarber.id);
+                            if (result && !result.error) {
+                              setFavoriteStatus(prev => ({
+                                ...prev,
+                                [selectedBarber.id]: result.isFavorite,
+                              }));
+                            }
+                          }}
+                          className={`flex flex-col items-center justify-center w-10 h-10 mt-1 rounded-full transition-all duration-200 border ${favoriteStatus[selectedBarber.id]
+                            ? "bg-blue-50 border-blue-100 text-blue-600"
+                            : "bg-white border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
+                            }`}
+                        >
+                          <Star
+                            className={`w-5 h-5 ${favoriteStatus[selectedBarber.id] ? "fill-current" : ""}`}
+                          />
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={async () => {
-                        if (!selectedBarber) return;
-                        const result = await toggleFavorite(selectedBarber.id);
-                        if (result && !result.error) {
-                          setFavoriteStatus(prev => ({
-                            ...prev,
-                            [selectedBarber.id]: result.isFavorite,
-                          }));
-                        }
-                      }}
-                      className={`p-2.5 rounded-xl transition-all duration-200 ${favoriteStatus[selectedBarber.id]
-                        ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
-                        : "bg-slate-100 text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
-                        }`}
-                      title={favoriteStatus[selectedBarber.id] ? "Favorilerden çıkar" : "Favorilere ekle"}
-                    >
-                      <Star
-                        className={`w-5 h-5 transition-transform duration-200 ${favoriteStatus[selectedBarber.id] ? "fill-current scale-110" : ""}`}
-                      />
-                    </button>
-                  </div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">{selectedBarber.shopName}</h2>
-                  {selectedBarber.address && (
-                    <div className="flex items-start gap-2 text-slate-600 mb-4">
-                      <MapPin size={18} className="mt-0.5 flex-shrink-0" />
-                      <span>{selectedBarber.address}</span>
-                    </div>
+                  ) : (
+                    // Fallback for no photos (Existing Layout but with Logo logic)
+                    <>
+                      <button
+                        onClick={() => setSelectedBarber(null)}
+                        className="mb-4 flex items-center gap-2 text-slate-600 hover:text-slate-900 text-sm"
+                      >
+                        <X size={18} />
+                        Geri Dön
+                      </button>
+
+                      <div className="flex items-start justify-between mb-4">
+                        {selectedBarber.logoUrl ? (
+                          <div className="w-20 h-20 rounded-full border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 bg-white">
+                            <img src={selectedBarber.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center font-bold text-3xl text-slate-400 border-4 border-white shadow-lg">
+                            {selectedBarber.shopName[0]}
+                          </div>
+                        )}
+                        <button
+                          onClick={async () => {
+                            if (!selectedBarber) return;
+                            const result = await toggleFavorite(selectedBarber.id);
+                            if (result && !result.error) {
+                              setFavoriteStatus(prev => ({
+                                ...prev,
+                                [selectedBarber.id]: result.isFavorite,
+                              }));
+                            }
+                          }}
+                          className={`p-2.5 rounded-xl transition-all duration-200 ${favoriteStatus[selectedBarber.id]
+                            ? "bg-amber-100 text-amber-600 hover:bg-amber-200 shadow-sm"
+                            : "bg-slate-100 text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 shadow-sm"
+                            }`}
+                        >
+                          <Star
+                            className={`w-5 h-5 transition-transform duration-200 ${favoriteStatus[selectedBarber.id] ? "fill-current scale-110" : ""}`}
+                          />
+                        </button>
+                      </div>
+                      <h2 className="text-2xl font-bold text-slate-900 mb-2">{selectedBarber.shopName}</h2>
+                      {selectedBarber.address && (
+                        <div className="flex items-start gap-2 text-slate-600 mb-4">
+                          <MapPin size={18} className="mt-0.5 flex-shrink-0" />
+                          <span>{selectedBarber.address}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -247,9 +351,16 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
                           }`}
                       >
                         <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400 flex-shrink-0">
-                            {barber.shopName[0]}
-                          </div>
+                          {barber.logoUrl ? (
+                            <div className="w-12 h-12 bg-white rounded-full overflow-hidden border border-slate-200 flex-shrink-0">
+                              <img src={barber.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400 flex-shrink-0">
+                              {barber.shopName[0]}
+                            </div>
+                          )}
+
                           <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-slate-900 mb-1">{barber.shopName}</h3>
                             {barber.address && (
@@ -392,6 +503,17 @@ export default function MapPageClient({ barbers, favoriteBarbers = [], mapCenter
           services={selectedBarber.services || []}
         />
       )}
+
+      {/* Lightbox for Gallery */}
+      {selectedBarber && selectedBarber.photos && (
+        <Lightbox
+          images={selectedBarber.photos}
+          isOpen={isLightboxOpen}
+          onClose={() => setIsLightboxOpen(false)}
+          initialIndex={lightboxIndex}
+        />
+      )}
     </div>
   );
 }
+

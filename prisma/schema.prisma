@@ -55,9 +55,9 @@ enum TicketPriority {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
+  id               String    @id @default(cuid())
+  name             String?
+  email            String    @unique
   password         String?
   image            String?
   role             Role      @default(CUSTOMER)
@@ -67,16 +67,16 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  profile                 Profile?
-  appointmentsAsCustomer  Appointment[]             @relation("CustomerAppointments")
-  sentMessages            Message[]                 @relation("SentMessages")
-  receivedMessages        Message[]                 @relation("ReceivedMessages")
-  blacklistedBy           Blacklist[]
-  favorites               Favorite[]
+  profile                  Profile?
+  appointmentsAsCustomer   Appointment[]             @relation("CustomerAppointments")
+  sentMessages             Message[]                 @relation("SentMessages")
+  receivedMessages         Message[]                 @relation("ReceivedMessages")
+  blacklistedBy            Blacklist[]
+  favorites                Favorite[]
   subscriptionAppointments SubscriptionAppointment[]
-  supportTickets          SupportTicket[]
-  ticketMessages          TicketMessage[]
-  paymentTransactions     PaymentTransaction[]
+  supportTickets           SupportTicket[]
+  ticketMessages           TicketMessage[]
+  paymentTransactions      PaymentTransaction[]
 }
 
 model Profile {
@@ -95,27 +95,30 @@ model Profile {
   subscriptionEndsAt          DateTime?
   isActive                    Boolean   @default(false)
   appointmentLimitPerCustomer Int       @default(1)
-  averageRating               Float?    // Ortalama puan (1-5)
+  averageRating               Float? // Ortalama puan (1-5)
   isVerified                  Boolean   @default(false)
 
   // Subscription appointment settings
   allowSubscriptionAppointments Boolean @default(false)
-  allowedRecurrenceTypes        Json?   // ["DAILY", "WEEKLY", "MONTHLY"]
+  allowedRecurrenceTypes        Json? // ["DAILY", "WEEKLY", "MONTHLY"]
   allowTimeChanges              Boolean @default(true) // Allow time changes
+
+  photos                        String[]  @default([]) // Gallery photos (Max 6)
+  logo                          String?   // Isletme logosu
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  services                Service[]
-  appointments            Appointment[]
-  blacklist               Blacklist[]
-  workingHours            WorkingHour[]
-  breaks                  Break[]
-  holidays                Holiday[]
-  subscriptions           SubscriptionHistory[]
-  staff                   Staff[] // Personeller
-  staffRoles              StaffRole[] // Personel rolleri
-  favoritedBy             Favorite[]
+  services                 Service[]
+  appointments             Appointment[]
+  blacklist                Blacklist[]
+  workingHours             WorkingHour[]
+  breaks                   Break[]
+  holidays                 Holiday[]
+  subscriptions            SubscriptionHistory[]
+  staff                    Staff[] // Personeller
+  staffRoles               StaffRole[] // Personel rolleri
+  favoritedBy              Favorite[]
   subscriptionAppointments SubscriptionAppointment[]
 
   createdAt DateTime @default(now())
@@ -183,8 +186,8 @@ model SubscriptionHistory {
   profileId String
   profile   Profile @relation(fields: [profileId], references: [id])
 
-  packageId   String?
-  package     Package?   @relation(fields: [packageId], references: [id])
+  packageId String?
+  package   Package? @relation(fields: [packageId], references: [id])
 
   promoCodeId String?
   promoCode   PromoCode? @relation(fields: [promoCodeId], references: [id])
@@ -201,8 +204,8 @@ model Service {
   profileId String
   profile   Profile @relation(fields: [profileId], references: [id])
 
-  appointments            Appointment[]
-  staffAssignments        StaffServiceAssignment[]
+  appointments             Appointment[]
+  staffAssignments         StaffServiceAssignment[]
   subscriptionAppointments SubscriptionAppointment[]
 }
 
@@ -405,11 +408,11 @@ model Favorite {
 model SubscriptionAppointment {
   id             String         @id @default(cuid())
   recurrenceType RecurrenceType // DAILY, WEEKLY, MONTHLY
-  startDate      DateTime       // First appointment date
-  endDate        DateTime?      // End date (null if unlimited)
-  time           String         // Time in "16:00" format
-  dayOfWeek      Int?           // For weekly: 0=Sunday, 1=Monday, ..., 6=Saturday
-  dayOfMonth     Int?           // For monthly: day 1-31
+  startDate      DateTime // First appointment date
+  endDate        DateTime? // End date (null if unlimited)
+  time           String // Time in "16:00" format
+  dayOfWeek      Int? // For weekly: 0=Sunday, 1=Monday, ..., 6=Saturday
+  dayOfMonth     Int? // For monthly: day 1-31
 
   customerId String
   customer   User   @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -443,9 +446,9 @@ model SubscriptionAppointmentException {
   subscriptionAppointment   SubscriptionAppointment @relation(fields: [subscriptionAppointmentId], references: [id], onDelete: Cascade)
 
   originalDate  DateTime // Original appointment date
-  exceptionType String   // "CANCELLED" or "RESCHEDULED"
+  exceptionType String // "CANCELLED" or "RESCHEDULED"
   newDate       DateTime? // New date if RESCHEDULED
-  newTime       String?   // New time if RESCHEDULED
+  newTime       String? // New time if RESCHEDULED
 
   createdAt DateTime @default(now())
 
@@ -460,15 +463,15 @@ model Package {
   durationDays Int
   features     String[] // Array of strings for features
   isPopular    Boolean  @default(false)
-  
+
   // Tax Info
-  taxRate       Int      @default(20) // %
-  isTaxIncluded Boolean  @default(true)
+  taxRate       Int     @default(20) // %
+  isTaxIncluded Boolean @default(true)
 
-  isActive     Boolean  @default(true)
+  isActive Boolean @default(true)
 
-  subscriptions SubscriptionHistory[]
-  promoCodes    PromoCode[]
+  subscriptions       SubscriptionHistory[]
+  promoCodes          PromoCode[]
   paymentTransactions PaymentTransaction[]
 
   createdAt DateTime @default(now())
@@ -480,7 +483,7 @@ model PromoCode {
   code            String    @unique
   discountPercent Int?
   discountAmount  Decimal?
-  durationDays    Int?      // e.g. 90 for 3 months trial
+  durationDays    Int? // e.g. 90 for 3 months trial
   maxUses         Int?
   usedCount       Int       @default(0)
   expiresAt       DateTime?
@@ -512,7 +515,7 @@ model SupportTicket {
 }
 
 model TicketMessage {
-  id      String @id @default(cuid())
+  id      String  @id @default(cuid())
   content String
   isAdmin Boolean @default(false) // If true, sent by admin
 
@@ -526,23 +529,23 @@ model TicketMessage {
 }
 
 model PaymentTransaction {
-  id            String   @id @default(cuid())
-  orderId       String   @unique
-  amount        Decimal
-  currency      String   @default("TRY")
-  status        String   // SUCCESS, FAILURE
-  provider      String   @default("WEBDETEK")
-  
-  transactionId String?  // From provider
-  rawResponse   Json?    // Full response from provider
+  id       String  @id @default(cuid())
+  orderId  String  @unique
+  amount   Decimal
+  currency String  @default("TRY")
+  status   String // SUCCESS, FAILURE
+  provider String  @default("WEBDETEK")
 
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  transactionId String? // From provider
+  rawResponse   Json? // Full response from provider
 
-  packageId     String?
-  package       Package? @relation(fields: [packageId], references: [id])
-  
-  errorReason   String?
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  createdAt     DateTime @default(now())
+  packageId String?
+  package   Package? @relation(fields: [packageId], references: [id])
+
+  errorReason String?
+
+  createdAt DateTime @default(now())
 }

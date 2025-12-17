@@ -25,30 +25,56 @@ export async function createBarberProfile(formData: FormData) {
     where: { slug },
   });
 
+  // Kullanıcının hali hazırda profili var mı?
+  const existingProfile = await db.profile.findUnique({
+    where: { userId: dbUserId },
+  });
+
   if (existingSlug) {
-    return { error: "Bu URL adresi daha önce alınmış." };
+    // Eğer slug başkasına aitse hata ver
+    if (!existingProfile || existingSlug.id !== existingProfile.id) {
+      return { error: "Bu URL adresi kullanımda. Lütfen başka bir tane seçiniz." };
+    }
   }
 
   try {
-    // Transaction ile hem kullanıcı rolünü güncelle hem de profili oluştur
-    await db.$transaction([
-      db.user.update({
-        where: { id: dbUserId },
-        data: { role: "BARBER" },
-      }),
-      db.profile.create({
+    if (existingProfile) {
+      // Profil varsa güncelle
+      await db.profile.update({
+        where: { id: existingProfile.id },
         data: {
-          userId: dbUserId,
           shopName,
           slug,
-          // Varsayılan tema ayarları
-          themeConfig: {
-            color: "slate",
-            font: "inter"
-          }
-        },
-      }),
-    ]);
+        }
+      });
+
+      // Kullanıcı rolünü de garantiye alalım
+      await db.user.update({
+        where: { id: dbUserId },
+        data: { role: "BARBER" }
+      });
+
+    } else {
+      // Profil yoksa oluştur
+      await db.$transaction([
+        db.user.update({
+          where: { id: dbUserId },
+          data: { role: "BARBER" },
+        }),
+        db.profile.create({
+          data: {
+            userId: dbUserId,
+            shopName,
+            slug,
+            // Varsayılan tema ayarları
+            themeConfig: {
+              color: "slate",
+              font: "inter"
+            }
+          },
+        }),
+      ]);
+    }
 
     revalidatePath("/dashboard");
     return { success: true };
@@ -58,3 +84,69 @@ export async function createBarberProfile(formData: FormData) {
   }
 }
 
+
+export async function updateBarberPhotos(photos: string[]) {
+  const session = await getSession();
+  const userId = session?.userId;
+
+  if (!userId) {
+    return { error: "Oturum açmanız gerekiyor." };
+  }
+
+  try {
+    const profile = await db.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return { error: "Profil bulunamadı." };
+    }
+
+    if (photos.length > 6) {
+      return { error: "En fazla 6 fotoğraf yükleyebilirsiniz." };
+    }
+
+    await db.profile.update({
+      where: { id: profile.id },
+      data: { photos },
+    });
+
+    revalidatePath("/barber/settings");
+    revalidatePath(`/${profile.slug}`); // Public sayfayı da yenile
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Fotoğraflar güncellenirken bir hata oluştu." };
+  }
+}
+
+export async function updateBarberLogo(logo: string | null) {
+  const session = await getSession();
+  const userId = session?.userId;
+
+  if (!userId) {
+    return { error: "Oturum açmanız gerekiyor." };
+  }
+
+  try {
+    const profile = await db.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return { error: "Profil bulunamadı." };
+    }
+
+    await db.profile.update({
+      where: { id: profile.id },
+      data: { logo },
+    });
+
+    revalidatePath("/barber/settings");
+    revalidatePath(`/${profile.slug}`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Logo güncellenirken bir hata oluştu." };
+  }
+}

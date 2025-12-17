@@ -100,9 +100,9 @@ export function CheckoutForm({ packageId, price, onSuccess }: { packageId: strin
             if (result.error) {
                 setError(result.error);
             } else {
-                alert("İşlem başarılı! Şimdi işletme ayarlarınızı tamamlayalım.");
+                alert("İşlem başarılı! Şimdi işletme adresinizi belirleyelim.");
                 onSuccess();
-                window.location.href = "/barber/settings";
+                window.location.href = "/barber/onboarding/address";
             }
         } catch (e) {
             setError("Beklenmedik bir hata oluştu.");

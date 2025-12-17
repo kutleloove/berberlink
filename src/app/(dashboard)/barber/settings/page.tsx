@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { LocationForm } from "./_components/location-form";
 import { SubscriptionSettingsForm } from "./_components/subscription-settings-form";
 import { SubscriptionStatus } from "./_components/subscription-status";
+import { PhotoUpload } from "./_components/photo-upload";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -28,7 +29,15 @@ export default async function SettingsPage() {
     redirect("/dashboard");
   }
 
-  const currentSubscription = dbUser.profile.subscriptions[0];
+  const rawSubscription = dbUser.profile.subscriptions[0];
+  const currentSubscription = rawSubscription ? {
+    ...rawSubscription,
+    amount: rawSubscription.amount.toString(),
+    package: rawSubscription.package ? {
+      ...rawSubscription.package,
+      price: rawSubscription.package.price.toString()
+    } : null
+  } : null;
 
   // Abonelik ayarlarını parse et
   const allowedRecurrenceTypes = dbUser.profile.allowedRecurrenceTypes
@@ -66,6 +75,15 @@ export default async function SettingsPage() {
             allowSubscriptionAppointments={dbUser.profile.allowSubscriptionAppointments}
             allowedRecurrenceTypes={allowedRecurrenceTypes}
             allowTimeChanges={dbUser.profile.allowTimeChanges}
+          />
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <h2 className="text-xl font-semibold mb-6">Galeri Fotoğrafları</h2>
+          <PhotoUpload
+            initialPhotos={dbUser.profile.photos || []}
+            initialLogo={dbUser.profile.logo || null}
+            slug={dbUser.profile.slug}
           />
         </div>
       </div>

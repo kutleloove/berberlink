@@ -17,9 +17,10 @@ interface LocationFormProps {
   initialAddress: string;
   initialLat: number | null;
   initialLng: number | null;
+  redirectTo?: string;
 }
 
-export function LocationForm({ initialAddress, initialLat, initialLng }: LocationFormProps) {
+export function LocationForm({ initialAddress, initialLat, initialLng, redirectTo }: LocationFormProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -41,7 +42,7 @@ export function LocationForm({ initialAddress, initialLat, initialLng }: Locatio
   // İl Seçilince
   const handleCityChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const cityId = e.target.value;
-    setSelectedCityId(cityId);
+    setSelectedCityId(cityId ? Number(cityId) : "");
     setSelectedDistrict("");
 
     // Haritayı şehre odakla
@@ -98,7 +99,11 @@ export function LocationForm({ initialAddress, initialLat, initialLng }: Locatio
     await updateLocation(formData);
     setLoading(false);
     alert("Konum ve adres bilgileri başarıyla kaydedildi.");
-    router.refresh();
+    if (redirectTo) {
+      window.location.href = redirectTo;
+    } else {
+      router.refresh();
+    }
   }
 
   return (
