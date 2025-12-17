@@ -31,23 +31,23 @@ export default function AuthLayout({
 
                     <div className="space-y-8">
                         <h2 className="font-display text-4xl font-bold leading-tight">
-                            Randevu yönetimini <br />
+                            Aradığın tarz <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 via-gold-500 to-gold-300 animate-shimmer">
-                                sanata dönüştürün.
+                                bir tık uzağında.
                             </span>
                         </h2>
 
                         <p className="text-lg text-slate-400 leading-relaxed">
-                            &quot;BerberLink sayesinde randevu karmaşasından kurtuldum. Müşterilerim artık 7/24 randevu alabiliyor, ben de işime odaklanıyorum.&quot;
+                            &quot;Şehrin en iyi berberlerini keşfetmek ve sıra beklemeden randevu almak hiç bu kadar kolay olmamıştı. BerberLink ile tarzımı şansa bırakmıyorum.&quot;
                         </p>
 
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-slate-800 border-2 border-gold-500/50 flex items-center justify-center overflow-hidden">
-                                <span className="font-bold text-slate-400">AH</span>
+                                <span className="font-bold text-slate-400">CK</span>
                             </div>
                             <div>
-                                <p className="font-bold text-white">Ahmet Yılmaz</p>
-                                <p className="text-sm text-gold-500">Master Berber, İstanbul</p>
+                                <p className="font-bold text-white">Caner K.</p>
+                                <p className="text-sm text-gold-500">Mutlu Müşteri</p>
                             </div>
                         </div>
                     </div>
