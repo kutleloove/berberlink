@@ -31,8 +31,8 @@ export function OnboardingForm({ userId }: { userId: string }) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="shopName" className="block text-sm font-medium text-slate-700 mb-1">
+      <div className="space-y-2">
+        <label htmlFor="shopName" className="block text-sm font-medium text-slate-300 ml-1">
           İşletme Adı
         </label>
         <input
@@ -41,16 +41,16 @@ export function OnboardingForm({ userId }: { userId: string }) {
           name="shopName"
           required
           placeholder="Örn: Ahmet Erkek Kuaförü"
-          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
+          className="w-full px-4 py-3.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all hover:bg-slate-800"
         />
       </div>
 
-      <div>
-        <label htmlFor="slug" className="block text-sm font-medium text-slate-700 mb-1">
+      <div className="space-y-2">
+        <label htmlFor="slug" className="block text-sm font-medium text-slate-300 ml-1">
           İşletme URL Adresi
         </label>
-        <div className="flex items-center">
-          <span className="bg-slate-100 border border-r-0 border-slate-300 px-3 py-2 rounded-l-lg text-slate-500 text-sm">
+        <div className="flex items-center group">
+          <span className="bg-slate-900 border border-r-0 border-white/10 px-4 py-3.5 rounded-l-xl text-slate-400 text-sm font-medium">
             berberlink.com/
           </span>
           <input
@@ -59,14 +59,15 @@ export function OnboardingForm({ userId }: { userId: string }) {
             name="slug"
             required
             placeholder="ahmet-kuafor"
-            className="w-full px-4 py-2 border border-slate-300 rounded-r-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
+            className="w-full px-4 py-3.5 border border-white/10 border-l-0 rounded-r-xl bg-slate-900 text-white placeholder-slate-500 focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500/50 focus:outline-none transition-all hover:bg-slate-800"
           />
         </div>
-        <p className="text-xs text-slate-500 mt-1">Türkçe karakter ve boşluk kullanmayınız.</p>
+        <p className="text-xs text-slate-500 mt-1 ml-1">Türkçe karakter ve boşluk kullanmayınız.</p>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center gap-2 animate-shake">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
           {error}
         </div>
       )}
@@ -74,10 +75,9 @@ export function OnboardingForm({ userId }: { userId: string }) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 text-white font-bold text-lg shadow-lg shadow-gold-500/20 hover:shadow-gold-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {loading && <Loader2 className="animate-spin" size={18} />}
-        İşletmeyi Oluştur
+        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "İşletmeyi Oluştur"}
       </button>
     </form>
   );

@@ -35,6 +35,7 @@ const MONTH_NAMES = [
   "Ekim",
   "Kasım",
   "Aralık",
+  "Ocak", "Şubat"
 ];
 
 export default function QuickAppointmentModal({
@@ -96,12 +97,12 @@ export default function QuickAppointmentModal({
         selectedServices.map(serviceId => getStaffForService(barberId, serviceId))
       ).then(staffArrays => {
         const allStaff = staffArrays.flat();
-        const uniqueStaff = allStaff.filter((staff, index, self) => 
+        const uniqueStaff = allStaff.filter((staff, index, self) =>
           index === self.findIndex(s => s.id === staff.id)
         );
         setAvailableStaff(uniqueStaff);
         setFetchingStaff(false);
-        
+
         if (uniqueStaff.length === 1) {
           setSelectedStaffId(uniqueStaff[0].id);
           // Tek personel varsa otomatik olarak step 3'e geç
@@ -147,11 +148,11 @@ export default function QuickAppointmentModal({
 
   const fetchDates = useCallback(async () => {
     // Eğer aynı ay/yıl/personel için zaten çekildiyse, tekrar çekme
-    if (fetchDatesRef.current && 
-        fetchDatesRef.current.month === currentMonth &&
-        fetchDatesRef.current.year === currentYear &&
-        fetchDatesRef.current.staffId === selectedStaffId &&
-        availableDates.size > 0) {
+    if (fetchDatesRef.current &&
+      fetchDatesRef.current.month === currentMonth &&
+      fetchDatesRef.current.year === currentYear &&
+      fetchDatesRef.current.staffId === selectedStaffId &&
+      availableDates.size > 0) {
       return; // Cache'den kullan
     }
 
@@ -168,7 +169,7 @@ export default function QuickAppointmentModal({
         const url = `/api/barber/${barberId}/availability?month=${currentMonth}&year=${currentYear}${selectedStaffId ? `&staffId=${selectedStaffId}` : ''}`;
         const response = await fetch(url);
         const data = await response.json();
-        
+
         setAvailableDates(new Set(data.availableDates || []));
         setUnavailableDates(new Set(data.unavailableDates || []));
         fetchDatesRef.current = { month: currentMonth, year: currentYear, staffId: selectedStaffId };
@@ -185,10 +186,10 @@ export default function QuickAppointmentModal({
     if (isOpen && step === 3 && selectedStaffId) {
       // Cache kontrolü: Eğer aynı ay/yıl/personel için zaten çekildiyse, tekrar çekme
       const cacheKey = `${currentMonth}-${currentYear}-${selectedStaffId}`;
-      if (!fetchDatesRef.current || 
-          fetchDatesRef.current.month !== currentMonth ||
-          fetchDatesRef.current.year !== currentYear ||
-          fetchDatesRef.current.staffId !== selectedStaffId) {
+      if (!fetchDatesRef.current ||
+        fetchDatesRef.current.month !== currentMonth ||
+        fetchDatesRef.current.year !== currentYear ||
+        fetchDatesRef.current.staffId !== selectedStaffId) {
         fetchDates();
       }
     }
@@ -211,7 +212,7 @@ export default function QuickAppointmentModal({
           const url = `/api/barber/${barberId}/availability?date=${selectedDate}${selectedStaffId ? `&staffId=${selectedStaffId}` : ''}`;
           const response = await fetch(url);
           const data = await response.json();
-          
+
           // Saat string'lerini Date objelerine çevir
           const slots = (data.availableHours || []).map((timeStr: string) => {
             const [hours, minutes] = timeStr.split(":").map(Number);
@@ -219,21 +220,21 @@ export default function QuickAppointmentModal({
             slotDate.setHours(hours, minutes, 0, 0);
             return slotDate;
           });
-          
+
           const unavailableSlots = (data.unavailableHours || []).map((timeStr: string) => {
             const [hours, minutes] = timeStr.split(":").map(Number);
             const slotDate = new Date(selectedDate);
             slotDate.setHours(hours, minutes, 0, 0);
             return slotDate;
           });
-          
+
           const mySubscriptionSlots = (data.mySubscriptionHours || []).map((timeStr: string) => {
             const [hours, minutes] = timeStr.split(":").map(Number);
             const slotDate = new Date(selectedDate);
             slotDate.setHours(hours, minutes, 0, 0);
             return slotDate;
           });
-          
+
           setAvailableSlots(slots);
           setUnavailableSlots(unavailableSlots);
           setMySubscriptionSlots(mySubscriptionSlots);
@@ -310,17 +311,17 @@ export default function QuickAppointmentModal({
         const [hours, minutes] = selectedSlot.toTimeString().split(":").slice(0, 2);
         const time = `${hours}:${minutes}`;
         const startDate = selectedSlot;
-        
+
         // Haftalık için dayOfWeek, aylık için dayOfMonth hesapla
         let dayOfWeek: number | undefined;
         let dayOfMonth: number | undefined;
-        
+
         if (recurrenceType === "WEEKLY") {
           dayOfWeek = startDate.getDay();
         } else if (recurrenceType === "MONTHLY") {
           dayOfMonth = startDate.getDate();
         }
-        
+
         const result = await createSubscriptionAppointment(
           barberId,
           selectedServices,
@@ -332,7 +333,7 @@ export default function QuickAppointmentModal({
           dayOfWeek,
           dayOfMonth
         );
-        
+
         if (result.success) {
           alert("Abonelik randevunuz başarıyla oluşturuldu!");
           onClose();
@@ -343,12 +344,12 @@ export default function QuickAppointmentModal({
       } else {
         // Normal randevu
         const result = await createAppointment(
-          barberId, 
-          selectedServices, 
+          barberId,
+          selectedServices,
           selectedSlot,
           selectedStaffId || undefined
         );
-        
+
         if (result.success) {
           alert("Randevunuz başarıyla oluşturuldu!");
           onClose();
@@ -386,7 +387,7 @@ export default function QuickAppointmentModal({
       today.setHours(0, 0, 0, 0);
       const checkDate = new Date(currentYear, currentMonth, date);
       checkDate.setHours(0, 0, 0, 0);
-      
+
       days.push({
         date,
         dateStr,
@@ -416,86 +417,85 @@ export default function QuickAppointmentModal({
     <div className="fixed inset-0 z-[9999] pointer-events-none">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 pointer-events-auto"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal/Panel */}
       <div
-        className={`fixed inset-y-0 right-0 bg-white shadow-2xl pointer-events-auto ${
+        className={`fixed inset-y-0 right-0 bg-slate-900 shadow-2xl pointer-events-auto border-l border-white/5 ${
           // Mobilde: sağdan açılan tam ekran panel
           // Desktop'ta: ortalanmış modal
-          "w-full md:w-[600px] md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:max-h-[90vh] md:inset-y-auto"
-        } flex flex-col animate-slide-in-right md:animate-fade-in-modal`}
+          "w-full md:w-[600px] md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:max-h-[85vh] md:inset-y-auto"
+          } flex flex-col animate-slide-in-right md:animate-fade-in-modal`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-white/5 sticky top-0 bg-slate-900 z-10 rounded-t-3xl">
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900">
+            <h2 className="text-xl md:text-2xl font-bold text-white">
               Hızlı Randevu
             </h2>
-            <p className="text-sm text-slate-600 mt-1">{barberName}</p>
+            <p className="text-sm text-slate-400 mt-1">{barberName}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white"
           >
-            <X className="w-5 h-5 text-slate-600" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
           {/* Step 1: Hizmet Seçimi */}
           {step === 1 && (
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">
+              <h3 className="text-sm font-semibold text-white mb-3">
                 Hizmet Seçin
               </h3>
-            <div className="space-y-2">
-              {services.length === 0 ? (
-                <p className="text-sm text-slate-500">Henüz hizmet eklenmemiş.</p>
-              ) : (
-                services.map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => toggleService(service.id)}
-                    className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
-                      selectedServices.includes(service.id)
-                        ? "border-slate-900 bg-slate-50"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-slate-900">{service.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {service.duration} dakika • {Number(service.price).toFixed(2)} ₺
-                        </p>
-                      </div>
-                      {selectedServices.includes(service.id) && (
-                        <div className="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-white" />
+              <div className="space-y-2">
+                {services.length === 0 ? (
+                  <p className="text-sm text-slate-500">Henüz hizmet eklenmemiş.</p>
+                ) : (
+                  services.map((service) => (
+                    <button
+                      key={service.id}
+                      onClick={() => toggleService(service.id)}
+                      className={`w-full text-left p-3 rounded-xl border-2 transition-all ${selectedServices.includes(service.id)
+                          ? "border-amber-500/50 bg-amber-500/10"
+                          : "border-white/5 hover:border-white/10 bg-white/5"
+                        }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-white">{service.name}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {service.duration} dakika • {Number(service.price).toFixed(2)} ₺
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-            {selectedServices.length > 0 && (
-              <div className="mt-3 p-3 bg-slate-50 rounded-xl">
-                <p className="text-sm text-slate-600">
-                  Toplam: <span className="font-bold text-slate-900">{totalPrice.toFixed(2)} ₺</span>
-                </p>
+                        {selectedServices.includes(service.id) && (
+                          <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                            <CheckCircle size={14} className="text-white" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
+              {selectedServices.length > 0 && (
+                <div className="mt-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                  <p className="text-sm text-slate-300">
+                    Toplam: <span className="font-bold text-white">{totalPrice.toFixed(2)} ₺</span>
+                  </p>
+                </div>
               )}
-              <div className="flex items-center justify-end gap-3 mt-6 border-t pt-4">
+              <div className="flex items-center justify-end gap-3 mt-6 border-t border-white/10 pt-4">
                 <button
                   onClick={() => setStep(2)}
                   disabled={selectedServices.length === 0}
-                  className="bg-slate-900 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 hover:bg-slate-800 transition flex items-center gap-2"
+                  className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 hover:bg-indigo-500 transition flex items-center gap-2 shadow-lg shadow-indigo-500/20"
                 >
                   Devam Et
                   <ArrowLeft className="rotate-180" size={18} />
@@ -508,23 +508,23 @@ export default function QuickAppointmentModal({
           {step === 2 && (
             <div className="animate-fade-in">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-900">
+                <h3 className="text-sm font-semibold text-white">
                   Personel Seçin
                 </h3>
-                <button 
-                  onClick={() => setStep(1)} 
-                  className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                <button
+                  onClick={() => setStep(1)}
+                  className="text-sm text-slate-400 hover:text-white flex items-center gap-1"
                 >
                   <ArrowLeft size={16} />
                   Geri Dön
                 </button>
               </div>
               {fetchingStaff ? (
-                <div className="flex justify-center py-8 text-slate-500">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+                <div className="flex justify-center py-8 text-slate-400">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-500"></div>
                 </div>
               ) : availableStaff.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <div className="text-center py-8 text-slate-500 bg-white/5 rounded-lg border border-dashed border-white/10">
                   Seçili hizmetlere atanmış personel bulunmuyor.
                 </div>
               ) : (
@@ -533,21 +533,20 @@ export default function QuickAppointmentModal({
                     <button
                       key={staff.id}
                       onClick={() => setSelectedStaffId(staff.id)}
-                      className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-200 ${
-                        selectedStaffId === staff.id
-                          ? "border-slate-900 bg-slate-50 scale-[1.02]"
-                          : "border-slate-200 hover:border-slate-300 hover:scale-[1.01]"
-                      }`}
+                      className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-200 ${selectedStaffId === staff.id
+                          ? "border-amber-500/50 bg-amber-500/10 scale-[1.02]"
+                          : "border-white/5 bg-white/5 hover:border-white/10 hover:scale-[1.01]"
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-slate-900">{staff.name}</p>
+                          <p className="font-semibold text-white">{staff.name}</p>
                           {staff.role && (
-                            <p className="text-xs text-slate-500 mt-1">{staff.role.name}</p>
+                            <p className="text-xs text-slate-400 mt-1">{staff.role.name}</p>
                           )}
                         </div>
                         {selectedStaffId === staff.id && (
-                          <CheckCircle className="text-slate-900 animate-scale-in" size={20} />
+                          <CheckCircle className="text-amber-500 animate-scale-in" size={20} />
                         )}
                       </div>
                     </button>
@@ -555,14 +554,14 @@ export default function QuickAppointmentModal({
                 </div>
               )}
               {selectedStaffId && !fetchingStaff && (
-                <div className="text-sm text-slate-500 text-center mt-6 animate-pulse">
+                <div className="text-sm text-slate-400 text-center mt-6 animate-pulse">
                   Tarih seçimine geçiliyor...
                 </div>
               )}
-              <div className="flex items-center justify-start gap-3 mt-6 border-t pt-4">
+              <div className="flex items-center justify-start gap-3 mt-6 border-t border-white/10 pt-4">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-6 py-3 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition"
+                  className="px-6 py-3 rounded-xl font-semibold text-slate-300 hover:bg-white/5 transition"
                 >
                   Geri Dön
                 </button>
@@ -574,106 +573,105 @@ export default function QuickAppointmentModal({
           {step === 3 && (
             <div className="animate-fade-in">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Tarih Seçin
                 </h3>
-                <button 
-                  onClick={() => setStep(2)} 
-                  className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                <button
+                  onClick={() => setStep(2)}
+                  className="text-sm text-slate-400 hover:text-white flex items-center gap-1"
                 >
                   <ArrowLeft size={16} />
                   Geri Dön
                 </button>
               </div>
 
-            {/* Ay Navigasyonu */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={handlePreviousMonth}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-slate-600" />
-              </button>
-              <h4 className="text-lg font-bold text-slate-900">
-                {MONTH_NAMES[currentMonth]} {currentYear}
-              </h4>
-              <button
-                onClick={handleNextMonth}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 text-slate-600" />
-              </button>
-            </div>
-
-            {/* Takvim */}
-            {fetchingDates ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+              {/* Ay Navigasyonu */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={handlePreviousMonth}
+                  className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-300 hover:text-white"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <h4 className="text-lg font-bold text-white">
+                  {MONTH_NAMES[currentMonth]} {currentYear}
+                </h4>
+                <button
+                  onClick={handleNextMonth}
+                  className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-300 hover:text-white"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-7 gap-2">
-                {/* Gün Başlıkları */}
-                {DAY_NAMES.map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-xs font-semibold text-slate-600 py-2"
-                  >
-                    {day}
-                  </div>
-                ))}
 
-                {/* Günler */}
-                {getCalendarDays().map((day, index) => {
-                  if (day.date === 0) {
-                    return <div key={`empty-${index}`} className="h-12" />;
-                  }
-
-                  const isSelected = selectedDate === day.dateStr;
-                  const isToday =
-                    day.dateStr ===
-                    new Date().toISOString().split("T")[0];
-
-                  return (
-                    <button
-                      key={day.dateStr}
-                      onClick={() => {
-                        if (day.isAvailable) {
-                          setSelectedDate(day.dateStr);
-                          // Tarih seçildiğinde otomatik olarak step 4'e geç
-                          setTimeout(() => {
-                            setStep(4);
-                          }, 300);
-                        }
-                      }}
-                      disabled={!day.isAvailable}
-                      className={`h-12 rounded-lg text-sm font-medium transition-all duration-200 relative ${
-                        day.isUnavailable
-                          ? "text-red-400 line-through bg-red-50 cursor-not-allowed"
-                          : day.isAvailable
-                          ? isSelected
-                            ? "bg-slate-900 text-white scale-105"
-                            : isToday
-                            ? "bg-blue-100 text-blue-900 hover:bg-blue-200 hover:scale-105"
-                            : "bg-slate-50 text-slate-900 hover:bg-slate-100 hover:scale-105"
-                          : "text-slate-300 bg-slate-50 cursor-not-allowed"
-                      }`}
+              {/* Takvim */}
+              {fetchingDates ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-500"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-7 gap-2">
+                  {/* Gün Başlıkları */}
+                  {DAY_NAMES.map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-xs font-semibold text-slate-500 py-2"
                     >
-                      {day.date}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      {day}
+                    </div>
+                  ))}
+
+                  {/* Günler */}
+                  {getCalendarDays().map((day, index) => {
+                    if (day.date === 0) {
+                      return <div key={`empty-${index}`} className="h-12" />;
+                    }
+
+                    const isSelected = selectedDate === day.dateStr;
+                    const isToday =
+                      day.dateStr ===
+                      new Date().toISOString().split("T")[0];
+
+                    return (
+                      <button
+                        key={day.dateStr}
+                        onClick={() => {
+                          if (day.isAvailable) {
+                            setSelectedDate(day.dateStr);
+                            // Tarih seçildiğinde otomatik olarak step 4'e geç
+                            setTimeout(() => {
+                              setStep(4);
+                            }, 300);
+                          }
+                        }}
+                        disabled={!day.isAvailable}
+                        className={`h-12 rounded-lg text-sm font-medium transition-all duration-200 relative ${day.isUnavailable
+                            ? "text-red-400/50 line-through bg-red-500/5 cursor-not-allowed border border-red-500/10"
+                            : day.isAvailable
+                              ? isSelected
+                                ? "bg-indigo-600 text-white scale-105 shadow-lg shadow-indigo-500/30"
+                                : isToday
+                                  ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30 hover:scale-105"
+                                  : "bg-white/5 text-slate-200 hover:bg-white/10 hover:scale-105 border border-white/5"
+                              : "text-slate-600 bg-white/5 cursor-not-allowed"
+                          }`}
+                      >
+                        {day.date}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {selectedDate && !fetchingDates && (
-                <div className="text-sm text-slate-500 text-center mt-6 animate-pulse">
+                <div className="text-sm text-slate-400 text-center mt-6 animate-pulse">
                   Saat seçimine geçiliyor...
                 </div>
               )}
-              <div className="flex items-center justify-start gap-3 mt-6 border-t pt-4">
+              <div className="flex items-center justify-start gap-3 mt-6 border-t border-white/10 pt-4">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-6 py-3 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition"
+                  className="px-6 py-3 rounded-xl font-semibold text-slate-300 hover:bg-white/5 transition"
                 >
                   Geri Dön
                 </button>
@@ -685,13 +683,13 @@ export default function QuickAppointmentModal({
           {step === 5 && subscriptionSettings?.allowSubscriptionAppointments && (
             <div className="animate-fade-in">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Repeat className="w-4 h-4" />
                   Tekrarlayan Randevu
                 </h3>
-                <button 
-                  onClick={() => setStep(4)} 
-                  className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                <button
+                  onClick={() => setStep(4)}
+                  className="text-sm text-slate-400 hover:text-white flex items-center gap-1"
                 >
                   <ArrowLeft size={16} />
                   Geri Dön
@@ -699,56 +697,55 @@ export default function QuickAppointmentModal({
               </div>
 
               <div className="mb-6">
-                <p className="text-sm text-slate-600 mb-4">
+                <p className="text-sm text-slate-400 mb-4">
                   Bu randevuyu tekrarlayan bir abonelik olarak oluşturmak ister misiniz?
                 </p>
-                
+
                 <div className="space-y-3">
                   <button
                     onClick={() => {
                       setRecurrenceType(null);
                       handleBooking();
                     }}
-                    className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-slate-400 text-left transition"
+                    className="w-full p-4 rounded-xl border-2 border-white/5 hover:border-white/10 bg-white/5 text-left transition"
                   >
-                    <div className="font-semibold text-slate-900">Tek Seferlik Randevu</div>
-                    <div className="text-sm text-slate-500">Sadece bu randevu için</div>
+                    <div className="font-semibold text-white">Tek Seferlik Randevu</div>
+                    <div className="text-sm text-slate-400">Sadece bu randevu için</div>
                   </button>
-                  
+
                   {subscriptionSettings.allowedRecurrenceTypes.map((type) => {
                     const labels: Record<string, string> = {
                       DAILY: "Günlük Tekrar",
                       WEEKLY: "Haftalık Tekrar",
                       MONTHLY: "Aylık Tekrar",
                     };
-                    
+
                     const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
                     const descriptions: Record<string, string> = {
                       DAILY: "Her gün aynı saatte",
                       WEEKLY: selectedSlot ? `Her ${dayNames[new Date(selectedSlot).getDay()]} aynı saatte` : "Her hafta aynı gün ve saatte",
                       MONTHLY: selectedSlot ? `Her ayın ${new Date(selectedSlot).getDate()} günü aynı saatte` : "Her ay aynı gün ve saatte",
                     };
-                    
+
                     return (
                       <button
                         key={type}
                         onClick={() => setRecurrenceType(type as "DAILY" | "WEEKLY" | "MONTHLY")}
-                        className={`w-full p-4 rounded-xl border-2 text-left transition ${
-                          recurrenceType === type
-                            ? "border-slate-900 bg-slate-50"
-                            : "border-slate-200 hover:border-slate-400"
-                        }`}
+                        className={`w-full p-4 rounded-xl border-2 text-left transition ${recurrenceType === type
+                            ? "border-indigo-500 bg-indigo-500/10"
+                            : "border-white/5 bg-white/5 hover:border-white/10"
+                          }`}
                       >
-                        <div className="font-semibold text-slate-900">{labels[type]}</div>
-                        <div className="text-sm text-slate-500">{descriptions[type]}</div>
+                        <div className="font-semibold text-white">{labels[type]}</div>
+                        <div className="text-sm text-slate-400">{descriptions[type]}</div>
                       </button>
                     );
                   })}
                 </div>
-                
+
                 {recurrenceType && (
-                  <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/5">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
                       Bitiş Tarihi (Opsiyonel)
                     </label>
                     <input
@@ -756,7 +753,7 @@ export default function QuickAppointmentModal({
                       value={endDate || ""}
                       min={selectedDate || undefined}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700/50 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-white"
                     />
                     <p className="text-xs text-slate-500 mt-1">
                       Boş bırakırsanız süresiz devam eder
@@ -771,13 +768,13 @@ export default function QuickAppointmentModal({
           {step === 4 && (
             <div className="animate-fade-in">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Saat Seçin
                 </h3>
-                <button 
-                  onClick={() => setStep(3)} 
-                  className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                <button
+                  onClick={() => setStep(3)}
+                  className="text-sm text-slate-400 hover:text-white flex items-center gap-1"
                 >
                   <ArrowLeft size={16} />
                   Geri Dön
@@ -786,7 +783,7 @@ export default function QuickAppointmentModal({
 
               {fetchingSlots ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-500"></div>
                 </div>
               ) : availableSlots.length === 0 && mySubscriptionSlots.length === 0 && unavailableSlots.length === 0 ? (
                 <p className="text-sm text-slate-500">Bu tarih için müsait saat bulunamadı.</p>
@@ -801,89 +798,69 @@ export default function QuickAppointmentModal({
                       <button
                         key={idx}
                         onClick={() => setSelectedSlot(slot)}
-                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          isSelected
-                            ? "bg-slate-900 text-white scale-105"
-                            : "bg-slate-50 text-slate-900 hover:bg-slate-100 hover:scale-105"
-                        }`}
+                        className={`py-2 px-1 rounded-lg text-sm font-medium transition ${isSelected
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
+                            : "bg-white/5 text-slate-300 hover:bg-white/10"
+                          }`}
                       >
                         {timeStr}
                       </button>
                     );
                   })}
-                  
-                  {/* Kullanıcının kendi abonelik randevuları - Farklı renkte göster */}
-                  {mySubscriptionSlots.map((slot, idx) => {
-                    const timeStr = new Date(slot).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-                    const isSelected = selectedSlot && selectedSlot.getTime() === slot.getTime();
 
-                    return (
-                      <button
-                        key={`my-sub-${idx}`}
-                        onClick={() => setSelectedSlot(slot)}
-                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 relative ${
-                          isSelected
-                            ? "bg-green-600 text-white scale-105"
-                            : "bg-green-50 text-green-700 border-2 border-green-300 hover:bg-green-100 hover:scale-105"
+                  {/* Kullanıcının kendi abonelik randevuları */}
+                  {mySubscriptionSlots.map((slot, idx) => (
+                    <button
+                      key={`my-sub-${idx}`}
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`py-2 px-1 rounded-lg text-sm font-medium transition relative ${selectedSlot && selectedSlot.getTime() === slot.getTime()
+                          ? "bg-emerald-600 text-white"
+                          : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
                         }`}
-                        title="Sizin abonelik randevunuz"
-                      >
-                        {timeStr}
-                        <span className="absolute top-1 right-1 text-xs">⭐</span>
-                      </button>
-                    );
-                  })}
-                  
-                  {/* Dolu saatler - Tıklanamaz */}
-                  {unavailableSlots.map((slot, idx) => {
-                    const timeStr = new Date(slot).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                      title="Sizin abonelik randevunuz"
+                    >
+                      {new Date(slot).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      <span className="absolute top-0 right-0 text-xs text-emerald-400">⭐</span>
+                    </button>
+                  ))}
 
-                    return (
-                      <button
-                        key={`unavailable-${idx}`}
-                        disabled
-                        className="p-3 rounded-lg text-sm font-medium bg-slate-100 text-slate-400 line-through cursor-not-allowed opacity-60"
-                        title="Bu saat dolu"
-                      >
-                        {timeStr}
-                      </button>
-                    );
-                  })}
+                  {/* Dolu saatler */}
+                  {unavailableSlots.map((slot, idx) => (
+                    <button
+                      key={`unavailable-${idx}`}
+                      disabled
+                      className="py-2 px-1 rounded-lg text-sm font-medium bg-white/5 text-slate-600 line-through cursor-not-allowed border border-white/5 opacity-50"
+                    >
+                      {new Date(slot).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                    </button>
+                  ))}
                 </div>
+              )}
+
+              {subscriptionSettings?.allowSubscriptionAppointments &&
+                (!hasActiveSubscription || subscriptionSettings.allowedRecurrenceTypes.includes("MONTHLY")) ? (
+                <button
+                  disabled={!selectedSlot || loading}
+                  onClick={() => setStep(5)}
+                  className="w-full mt-6 bg-indigo-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 hover:bg-indigo-500 transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+                >
+                  Devam Et
+                  <ArrowLeft className="rotate-180" size={18} />
+                </button>
+              ) : (
+                <button
+                  disabled={!selectedSlot || loading}
+                  onClick={handleBooking}
+                  className="w-full mt-6 bg-indigo-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 hover:bg-indigo-500 transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+                >
+                  {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <CheckCircle size={18} />}
+                  Randevuyu Onayla
+                </button>
               )}
             </div>
           )}
-        </div>
-
-        {/* Footer - Modal'ın altında sabit */}
-        <div className="p-4 md:p-6 border-t border-slate-200 bg-white mt-auto flex-shrink-0">
-          <button
-            onClick={step === 5 ? handleBooking : (subscriptionSettings?.allowSubscriptionAppointments && (!hasActiveSubscription || subscriptionSettings.allowedRecurrenceTypes.includes("MONTHLY")) && selectedSlot) ? () => setStep(5) : handleBooking}
-            disabled={
-              loading ||
-              (step !== 4 && step !== 5) ||
-              selectedServices.length === 0 ||
-              !selectedDate ||
-              !selectedSlot
-            }
-            className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Oluşturuluyor...</span>
-              </>
-            ) : step === 5 ? (
-              recurrenceType ? "Abonelik Randevusu Oluştur" : "Randevu Oluştur"
-            ) : subscriptionSettings?.allowSubscriptionAppointments && (!hasActiveSubscription || subscriptionSettings.allowedRecurrenceTypes.includes("MONTHLY")) && selectedSlot ? (
-              "Devam Et"
-            ) : (
-              "Randevu Oluştur"
-            )}
-          </button>
         </div>
       </div>
     </div>
   );
 }
-

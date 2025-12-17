@@ -1,10 +1,10 @@
 "use client";
 
-import { login, signup } from "@/actions/auth"; // We will use signup action here
+import { signup } from "@/actions/auth"; // We will use signup action here
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Scissors } from "lucide-react";
 
 export default function SignUpPage() {
     const router = useRouter();
@@ -28,75 +28,82 @@ export default function SignUpPage() {
     }
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 relative overflow-hidden">
-            {/* Abstract Background Shapes */}
-            <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-purple-800 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"></div>
-            <div className="absolute top-[10%] left-[5%] w-[300px] h-[300px] bg-indigo-500 rounded-full mix-blend-screen filter blur-3xl opacity-20"></div>
+        <div className="w-full">
+            <div className="lg:hidden mb-8 text-center flex justify-center">
+                <div className="inline-flex items-center gap-2 font-display font-bold text-2xl text-white">
+                    <div className="bg-gradient-to-br from-gold-400 to-gold-600 text-slate-950 p-2 rounded-xl shadow-lg shadow-gold-500/20">
+                        <Scissors size={24} />
+                    </div>
+                    <span>BerberLink</span>
+                </div>
+            </div>
 
-            <div className="w-full max-w-md p-8 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl relative z-10 transition-all">
-                <div className="mb-8 text-center">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-200 to-indigo-200 bg-clip-text text-transparent mb-2">
-                        Get Started
-                    </h1>
-                    <p className="text-slate-400 font-medium">Create your BerberLink account</p>
+            <div className="mb-8">
+                <h1 className="font-display text-4xl font-bold text-white mb-2">
+                    Aramıza Katılın 🚀
+                </h1>
+                <p className="text-slate-400">
+                    Sadece birkaç adımda kendi berber dükkanınızı dijitalleştirin veya randevu almaya başlayın.
+                </p>
+            </div>
+
+            <form action={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300 ml-1">Ad Soyad</label>
+                    <input
+                        name="name"
+                        type="text"
+                        required
+                        className="w-full px-4 py-3.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all hover:bg-slate-800"
+                        placeholder="Adınız Soyadınız"
+                    />
                 </div>
 
-                <form action={handleSubmit} className="space-y-5">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Full Name</label>
-                        <input
-                            name="name"
-                            type="text"
-                            required
-                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                            placeholder="John Doe"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Email</label>
-                        <input
-                            name="email"
-                            type="email"
-                            required
-                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                            placeholder="you@company.com"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
-                        <input
-                            name="password"
-                            type="password"
-                            required
-                            minLength={6}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                            placeholder="••••••••"
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/20 text-red-200 text-sm text-center">
-                            {error}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
-                    </button>
-                </form>
-
-                <div className="mt-6 text-center text-sm text-slate-400">
-                    Already have an account?{" "}
-                    <Link href="/sign-in" className="text-purple-300 hover:text-white font-semibold transition-colors">
-                        Log in
-                    </Link>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300 ml-1">E-posta Adresi</label>
+                    <input
+                        name="email"
+                        type="email"
+                        required
+                        className="w-full px-4 py-3.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all hover:bg-slate-800"
+                        placeholder="ad@sirket.com"
+                    />
                 </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300 ml-1">Şifre</label>
+                    <input
+                        name="password"
+                        type="password"
+                        required
+                        minLength={6}
+                        className="w-full px-4 py-3.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500/50 transition-all hover:bg-slate-800"
+                        placeholder="••••••••"
+                    />
+                    <p className="text-xs text-slate-500 ml-1">En az 6 karakter olmalıdır.</p>
+                </div>
+
+                {error && (
+                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center gap-2 animate-shake">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                        {error}
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 text-white font-bold text-lg shadow-lg shadow-gold-500/20 hover:shadow-gold-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Hesap Oluştur"}
+                </button>
+            </form>
+
+            <div className="mt-8 text-center text-slate-400">
+                Zaten hesabınız var mı?{" "}
+                <Link href="/sign-in" className="text-gold-500 hover:text-gold-400 font-bold hover:underline transition-colors">
+                    Giriş yapın
+                </Link>
             </div>
         </div>
     );

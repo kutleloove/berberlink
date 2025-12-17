@@ -18,13 +18,15 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">İşletmenizi Oluşturun</h1>
-        <p className="text-slate-600 mb-8">BerberLink'te yerinizi alın ve randevuları yönetmeye başlayın.</p>
-
-        <OnboardingForm userId={dbUser?.id || ""} />
+    <div className="w-full">
+      <div className="mb-8 text-center text-white">
+        <h1 className="font-display text-4xl font-bold mb-2">İşletmenizi Oluşturun ✂️</h1>
+        <p className="text-slate-400">
+          BerberLink&apos;te yerinizi alın ve randevuları profesyonelce yönetmeye başlayın.
+        </p>
       </div>
+
+      <OnboardingForm userId={dbUser?.id || ""} />
     </div>
   );
 }

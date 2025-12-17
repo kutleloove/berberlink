@@ -17,21 +17,21 @@ export function GallerySection({ photos, shopName }: GallerySectionProps) {
 
     return (
         <>
-            <div className="border-b border-slate-50 pb-6">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <div className="border-b border-white/5 pb-6">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <ImageIcon size={14} /> Fotoğraflar
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
                     {photos.map((photo, index) => (
                         <div
                             key={index}
-                            className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer hover:opacity-90 transition"
+                            className="aspect-square rounded-lg overflow-hidden bg-slate-800 border border-white/5 cursor-pointer hover:opacity-90 hover:ring-2 hover:ring-indigo-500/50 transition duration-300"
                             onClick={() => {
                                 setLightboxIndex(index);
                                 setIsLightboxOpen(true);
                             }}
                         >
-                            <img src={photo} alt={`${shopName} - Fotoğraf ${index + 1}`} className="w-full h-full object-cover" />
+                            <img src={photo} alt={`${shopName} - Fotoğraf ${index + 1}`} className="w-full h-full object-cover transition-transform hover:scale-110 duration-500" />
                         </div>
                     ))}
                 </div>
